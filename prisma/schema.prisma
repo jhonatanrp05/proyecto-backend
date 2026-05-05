@@ -6,3 +6,120 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ============================================================
+// MODELOS DE D1 — stubs mínimos para que las FK de módulo 2
+// compilen. D1 los reemplazará con la versión completa.
+// ============================================================
+
+enum Role {
+  ADMIN
+  PROFESSOR
+  STUDENT
+}
+
+model User {
+  id        String      @id @default(uuid())
+  email     String      @unique
+  password  String
+  role      Role
+  createdAt DateTime    @default(now())
+
+  challenges Challenge[] @relation("ChallengeCreatedBy")
+
+  @@map("users")
+}
+
+model Course {
+  id         String      @id @default(uuid())
+  name       String
+  code       String      @unique
+  period     String
+  group      String
+  professorId String
+  createdAt  DateTime    @default(now())
+
+  challenges Challenge[]
+
+  @@map("courses")
+}
+
+// ============================================================
+// MÓDULO 2 — Dev 2
+// ============================================================
+
+enum ChallengeStatus {
+  draft
+  published
+  archived
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+}
+
+model Challenge {
+  id             String          @id @default(uuid())
+  title          String
+  description    String
+  difficulty     Difficulty
+  tags           String[]
+  databaseEngine String
+  timeLimit      Int
+  status         ChallengeStatus @default(draft)
+
+  courseId       String
+  course         Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdBy      String
+  professor      User            @relation("ChallengeCreatedBy", fields: [createdBy], references: [id])
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  schema         ChallengeSchema?
+  seedData       SeedData?
+  expectedResult ExpectedResult?
+
+  @@map("challenges")
+}
+
+model ChallengeSchema {
+  id          String    @id @default(uuid())
+  ddlScript   String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  challengeId String    @unique
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("challenge_schemas")
+}
+
+model SeedData {
+  id           String    @id @default(uuid())
+  insertScript String    @db.Text
+  isGenerated  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  challengeId  String    @unique
+  challenge    Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("seed_data")
+}
+
+model ExpectedResult {
+  id          String    @id @default(uuid())
+  query       String    @db.Text
+  outputJson  Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  challengeId String    @unique
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("expected_results")
+}
