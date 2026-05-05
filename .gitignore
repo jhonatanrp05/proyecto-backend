@@ -27,3 +27,5 @@ npm-debug.log*
 
 # Docker
 docker-compose.override.yml
+
+/generated/prisma
