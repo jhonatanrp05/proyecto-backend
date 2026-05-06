@@ -4,9 +4,8 @@ import { ChallengeSchema } from '../../domain/entities/challenge-schema.entity';
 import { SeedData } from '../../domain/entities/seed-data.entity';
 import { ExpectedResult } from '../../domain/entities/expected-result.entity';
 
-// ------------------------------------------------------------------ //
+
 //  Upload Schema DDL
-// ------------------------------------------------------------------ //
 
 @Injectable()
 export class UploadSchemaUseCase {
@@ -32,9 +31,9 @@ export class UploadSchemaUseCase {
   }
 }
 
-// ------------------------------------------------------------------ //
-//  Upload Seed Data (manual)
-// ------------------------------------------------------------------ //
+
+//  Upload Seed Data 
+
 
 @Injectable()
 export class UploadSeedDataUseCase {
@@ -60,9 +59,9 @@ export class UploadSeedDataUseCase {
   }
 }
 
-// ------------------------------------------------------------------ //
+
 //  Set Expected Result
-// ------------------------------------------------------------------ //
+
 
 @Injectable()
 export class SetExpectedResultUseCase {

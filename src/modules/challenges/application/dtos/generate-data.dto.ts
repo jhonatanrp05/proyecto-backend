@@ -7,17 +7,17 @@ export type FieldType = 'foreign_key' | 'decimal' | 'date' | 'enum' | 'string';
 export interface FieldConfig {
   type: FieldType;
   // foreign_key
-  references?: string;   // ej: "customers.id"
+  references?: string;   
   // decimal
   min?: number;
   max?: number;
   // date
-  from?: string;         // ej: "2026-01-01"
+  from?: string;         
   to?: string;
   // enum
   values?: string[];
   // nulos
-  nullable?: number;     // porcentaje entre 0 y 1, ej: 0.1 = 10% nulos
+  nullable?: number;     
 }
 
 export class TableGenerationConfig {

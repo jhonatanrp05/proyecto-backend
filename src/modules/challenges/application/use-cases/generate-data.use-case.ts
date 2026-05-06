@@ -28,9 +28,8 @@ export class GenerateDataUseCase {
     return this.challengeRepo.upsertSeedData(challengeId, insertScript, true);
   }
 
-  // ------------------------------------------------------------------ //
+
   //  Generador de INSERTs
-  // ------------------------------------------------------------------ //
 
   private buildInsertScript(dto: GenerateDataDto): string {
     // Mapa de ids generados por tabla para respetar FK
@@ -47,7 +46,7 @@ export class GenerateDataUseCase {
           this.generateValue(config, generatedIds),
         );
 
-        // Si hay un campo id serial, guardamos el índice (i+1) como id generado
+        // Si hay un campo id serial, guardamos el índice (i+1) como id generado para esa tabla
         ids.push(i + 1);
         values.push(`(${rowValues.join(', ')})`);
       }

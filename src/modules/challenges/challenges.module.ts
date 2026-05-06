@@ -13,9 +13,9 @@ import { GenerateDataUseCase } from './application/use-cases/generate-data.use-c
 
 // Repository
 import { ChallengeRepository } from './domain/repositories/challenge.repository';
-import { PrismaChallengeRepository } from './infrastructure/repositories/prisma-challenge.repository';
+import { PrismaChallengeRepository } from './infrastructure/persistence/prisma-challenge.repository';
 
-// Shared — ajusta el path al PrismaModule de D1
+
 import { PrismaModule } from '../../shared/prisma/prisma.module';
 
 @Module({
@@ -38,7 +38,7 @@ import { PrismaModule } from '../../shared/prisma/prisma.module';
     SetExpectedResultUseCase,
     GenerateDataUseCase,
   ],
-  // Exporta el repositorio por si D3 o D5 necesitan acceder a datos de challenges
+ 
   exports: [ChallengeRepository],
 })
 export class ChallengesModule {}

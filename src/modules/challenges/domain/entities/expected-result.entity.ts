@@ -13,7 +13,7 @@ export class ExpectedResult {
   /**
    * Compara un resultado obtenido con el resultado esperado.
    * Compara fila a fila ignorando el orden de las columnas dentro de cada fila.
-   * El orden de las filas SÍ importa.
+   * El orden de las filas importa.
    */
   matches(obtainedResult: Record<string, unknown>[]): boolean {
     if (obtainedResult.length !== this.outputJson.length) return false;
@@ -26,7 +26,7 @@ export class ExpectedResult {
       if (expectedKeys.length !== obtainedKeys.length) return false;
 
       return expectedKeys.every((key) => {
-        // Comparación como string para evitar problemas de tipos (number vs string de la BD)
+       
         return String(expectedRow[key]) === String(obtainedRow[key]);
       });
     });

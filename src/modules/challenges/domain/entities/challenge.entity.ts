@@ -11,11 +11,11 @@ export class Challenge {
   timeLimit!: number; // en milisegundos
   status!: ChallengeStatus;
   courseId!: string;
-  createdBy!: string; // userId del profesor
+  createdBy!: string; //profesor
   createdAt!: Date;
   updatedAt!: Date;
 
-  // Relaciones opcionales (se cargan cuando se necesitan)
+  // Relaciones opcionales 
   schema?: ChallengeSchema;
   seedData?: SeedData;
   expectedResult?: ExpectedResult;
@@ -54,8 +54,7 @@ export class Challenge {
   }
 }
 
-// Estas clases se definen aquí para referencia en los tipos opcionales de Challenge
-// Sus archivos propios las exportan de forma independiente
+
 import { ChallengeSchema } from './challenge-schema.entity';
 import { SeedData } from './seed-data.entity';
 import { ExpectedResult } from './expected-result.entity';

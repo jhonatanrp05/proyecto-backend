@@ -17,7 +17,7 @@ export class CreateChallengeUseCase {
       tags: dto.tags,
       databaseEngine: dto.databaseEngine,
       timeLimit: dto.timeLimit,
-      status: 'draft', // siempre empieza en draft
+      status: 'draft', 
       courseId: dto.courseId,
       createdBy: professorId,
       createdAt: new Date(),

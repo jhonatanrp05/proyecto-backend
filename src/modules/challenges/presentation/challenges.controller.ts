@@ -45,9 +45,9 @@ export class ChallengesController {
     private readonly generateData: GenerateDataUseCase,
   ) {}
 
-  // ------------------------------------------------------------------ //
+
   //  POST /challenges
-  // ------------------------------------------------------------------ //
+
 
   @Post()
   @Roles(Role.PROFESSOR)
@@ -56,9 +56,7 @@ export class ChallengesController {
     return this.createChallenge.execute(dto, req.user.id);
   }
 
-  // ------------------------------------------------------------------ //
   //  GET /challenges
-  // ------------------------------------------------------------------ //
 
   @Get()
   @Roles(Role.PROFESSOR, Role.STUDENT)
@@ -69,9 +67,9 @@ export class ChallengesController {
     return this.getChallenges.execute({ courseId, onlyPublished: isStudent });
   }
 
-  // ------------------------------------------------------------------ //
+  
   //  GET /challenges/:id
-  // ------------------------------------------------------------------ //
+  
 
   @Get(':id')
   @Roles(Role.PROFESSOR, Role.STUDENT)
@@ -81,9 +79,9 @@ export class ChallengesController {
     return this.getChallengeById.execute(id, isStudent);
   }
 
-  // ------------------------------------------------------------------ //
+  
   //  PATCH /challenges/:id
-  // ------------------------------------------------------------------ //
+  
 
   @Patch(':id')
   @Roles(Role.PROFESSOR)
@@ -92,9 +90,9 @@ export class ChallengesController {
     return this.updateChallenge.execute(id, dto, req.user.id);
   }
 
-  // ------------------------------------------------------------------ //
+  
   //  PATCH /challenges/:id/status
-  // ------------------------------------------------------------------ //
+  
 
   @Patch(':id/status')
   @Roles(Role.PROFESSOR)
@@ -107,9 +105,9 @@ export class ChallengesController {
     return this.changeChallengeStatus.execute(id, dto.status, req.user.id);
   }
 
-  // ------------------------------------------------------------------ //
+ 
   //  POST /challenges/:id/schema
-  // ------------------------------------------------------------------ //
+ 
 
   @Post(':id/schema')
   @Roles(Role.PROFESSOR)
@@ -122,9 +120,9 @@ export class ChallengesController {
     return this.uploadSchemaUseCase.execute(id, dto.ddlScript, req.user.id);
   }
 
-  // ------------------------------------------------------------------ //
+ 
   //  POST /challenges/:id/seed-data
-  // ------------------------------------------------------------------ //
+ 
 
   @Post(':id/seed-data')
   @Roles(Role.PROFESSOR)
@@ -137,9 +135,9 @@ export class ChallengesController {
     return this.uploadSeedData.execute(id, dto.insertScript, req.user.id);
   }
 
-  // ------------------------------------------------------------------ //
+ 
   //  POST /challenges/:id/expected-result
-  // ------------------------------------------------------------------ //
+ 
 
   @Post(':id/expected-result')
   @Roles(Role.PROFESSOR)
@@ -151,10 +149,9 @@ export class ChallengesController {
   ) {
     return this.setExpectedResultUseCase.execute(id, dto.query, dto.outputJson, req.user.id);
   }
-
-  // ------------------------------------------------------------------ //
+ 
   //  POST /challenges/:id/generate-data
-  // ------------------------------------------------------------------ //
+ 
 
   @Post(':id/generate-data')
   @Roles(Role.PROFESSOR)

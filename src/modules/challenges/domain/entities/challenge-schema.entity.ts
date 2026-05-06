@@ -1,7 +1,7 @@
 export class ChallengeSchema {
   id!: string;
   challengeId!: string;
-  ddlScript!: string; // Texto plano con los CREATE TABLE
+  ddlScript!: string;
   createdAt!: Date;
   updatedAt!: Date;
 
@@ -11,7 +11,7 @@ export class ChallengeSchema {
 
   /**
    * Valida que el script no esté vacío y tenga al menos un CREATE TABLE.
-   * Validación básica — la validación real ocurre al ejecutarlo en Docker.
+   * Validación básica.
    */
   isValid(): boolean {
     if (!this.ddlScript || this.ddlScript.trim().length === 0) return false;
