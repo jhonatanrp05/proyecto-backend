@@ -165,8 +165,8 @@ export class PrismaChallengeRepository implements ChallengeRepository {
   ): Promise<ExpectedResult> {
     const record = await this.prisma.expectedResult.upsert({
       where: { challengeId },
-      update: { query, outputJson },
-      create: { challengeId, query, outputJson },
+      update: { query, outputJson: outputJson as any },
+      create: { challengeId, query, outputJson: outputJson as any },
     });
     return new ExpectedResult({
       id: record.id,
