@@ -10,7 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { Roles, CurrentUser } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
 import { RolesGuard } from '../../../shared/guards';
@@ -29,6 +29,10 @@ export class CoursesController {
   @Post()
   @Roles(Role.PROFESSOR)
   @ApiOperation({ summary: 'Create a course [PROFESSOR]' })
+  @ApiResponse({
+    status: 201,
+    description: 'Course created successfully'
+  })
   create(@Body() dto: CreateCourseDto, @CurrentUser() user: any) {
     return this.coursesService.create(dto, user.id);
   }
@@ -36,6 +40,10 @@ export class CoursesController {
   @Get()
   @Roles(Role.PROFESSOR, Role.ADMIN)
   @ApiOperation({ summary: 'List all courses [PROFESSOR, ADMIN]' })
+  @ApiResponse({
+    status: 200,
+    description: 'Courses retrieved successfully'
+  })
   findAll() {
     return this.coursesService.findAll();
   }
@@ -43,6 +51,10 @@ export class CoursesController {
   @Get(':id')
   @Roles(Role.PROFESSOR, Role.STUDENT, Role.ADMIN)
   @ApiOperation({ summary: 'Get course by ID [PROFESSOR, STUDENT, ADMIN]' })
+  @ApiResponse({
+    status: 200,
+    description: 'Course retrieved successfully'
+  })
   findOne(@Param('id') id: string) {
     return this.coursesService.findById(id);
   }
@@ -50,6 +62,10 @@ export class CoursesController {
   @Patch(':id')
   @Roles(Role.PROFESSOR, Role.ADMIN)
   @ApiOperation({ summary: 'Update course [PROFESSOR, ADMIN]' })
+  @ApiResponse({
+    status: 200,
+    description: 'Course updated successfully'
+  })
   update(
     @Param('id') id: string,
     @Body() dto: UpdateCourseDto,
@@ -62,6 +78,10 @@ export class CoursesController {
   @Roles(Role.PROFESSOR, Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete course [PROFESSOR, ADMIN]' })
+  @ApiResponse({
+    status: 204,
+    description: 'Course deleted successfully'
+  })
   delete(@Param('id') id: string, @CurrentUser() user: any) {
     return this.coursesService.delete(id, user.id, user.role);
   }
@@ -69,6 +89,10 @@ export class CoursesController {
   @Post(':id/students')
   @Roles(Role.PROFESSOR)
   @ApiOperation({ summary: 'Enroll student in course [PROFESSOR]' })
+  @ApiResponse({
+    status: 201,
+    description: 'Student enrolled successfully'
+  })
   enroll(
     @Param('id') courseId: string,
     @Body() dto: EnrollStudentDto,
@@ -81,6 +105,10 @@ export class CoursesController {
   @Roles(Role.PROFESSOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Unenroll student from course [PROFESSOR]' })
+  @ApiResponse({
+    status: 204,
+    description: 'Student unenrolled successfully'
+  })
   unenroll(
     @Param('id') courseId: string,
     @Param('studentId') studentId: string,
@@ -88,4 +116,38 @@ export class CoursesController {
   ) {
     return this.coursesService.unenrollStudent(courseId, studentId, user.id);
   }
+
+  @Get(':id/report')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({
+    summary: 'Get course report [PROFESSOR]',
+    description: 'Returns analytics and performance data for a course'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Course report retrieved successfully'
+  })
+  getCourseReport(
+    @Param('id') id: string
+  ) {
+    return {};
+  }
+
+  @Get(':id/leaderboard')
+  @Roles(Role.PROFESSOR, Role.STUDENT)
+  @ApiOperation({
+    summary: 'Get course leaderboard [PROFESSOR, STUDENT]',
+    description: 'Returns ranking of students based on course performance'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Leaderboard retrieved successfully'
+  })
+  getLeaderboard(
+    @Param('id') id: string
+  ) {
+    return [];
+  }
+
+  
 }

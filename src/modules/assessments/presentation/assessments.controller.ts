@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -14,16 +15,22 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 
+
+import { Roles, CurrentUser } from '../../../shared/decorators';
+import { Role } from '../../../shared/constants';
+import { RolesGuard } from '../../../shared/guards';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { AssessmentResponseDto } from './dto/assessment-response.dto';
 
 @ApiTags('Assessments')
 @ApiBearerAuth()
+@UseGuards(RolesGuard)
 @Controller('assessments')
 export class AssessmentsController {
 
   @Post()
+  @Roles(Role.PROFESSOR)
   @ApiOperation({
     summary: 'Create assessment [PROFESSOR]',
     description: 'Allows a professor to create a new SQL assessment'
@@ -45,6 +52,7 @@ export class AssessmentsController {
   }
 
   @Get()
+  @Roles(Role.PROFESSOR, Role.STUDENT)
   @ApiOperation({
     summary: 'Get all assessments [PROFESSOR, STUDENT]',
     description: 'Returns a list of all available assessments'
@@ -60,6 +68,7 @@ export class AssessmentsController {
   }
 
   @Get(':id')
+  @Roles(Role.PROFESSOR, Role.STUDENT)
   @ApiOperation({
     summary: 'Get assessment by ID [PROFESSOR, STUDENT]',
     description: 'Returns detailed information about a specific assessment'
@@ -81,6 +90,7 @@ export class AssessmentsController {
   }
 
   @Patch(':id')
+  @Roles(Role.PROFESSOR)
   @ApiOperation({
     summary: 'Update assessment [PROFESSOR]',
     description: 'Updates assessment information'
