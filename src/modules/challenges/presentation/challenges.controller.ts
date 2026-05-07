@@ -3,13 +3,14 @@ import {
   Get,
   Post,
   Patch,
+
   Body,
   Param,
   Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse} from '@nestjs/swagger';
 
 import { CreateChallengeUseCase } from '../application/use-cases/create-challenge.use-case';
 import { GetChallengesUseCase, GetChallengeByIdUseCase } from '../application/use-cases/get-challenges.use-case';
@@ -26,7 +27,7 @@ import { GenerateDataDto } from '../application/dtos/generate-data.dto';
 
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
-import { Roles } from '../../../shared/decorators/roles.decorator';
+import { Roles, CurrentUser } from '../../../shared/decorators/roles.decorator';
 import { Role } from '../../../shared/constants/roles.enum';
 @ApiTags('Challenges')
 @ApiBearerAuth()
@@ -163,4 +164,24 @@ export class ChallengesController {
   ) {
     return this.generateData.execute(id, dto, req.user.id);
   }
+  @Get(':id/stats')
+    @Roles(Role.PROFESSOR)
+    @ApiOperation({
+    summary: 'Get challenge statistics [PROFESSOR]',
+    description: 'Returns analytics and statistics for a challenge'
+    })
+    @ApiResponse({
+    status: 200,
+    description: 'Challenge statistics retrieved successfully'
+    })
+    getChallengeStats(
+    @Param('id') id: string
+    ) {
+    return {};
+    }
 }
+
+
+
+
+

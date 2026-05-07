@@ -8,9 +8,10 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build
+ARG DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+RUN npx prisma generate
 
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "start:dev"]
 
 # --- Production stage ---
 FROM node:22-alpine AS production
@@ -20,6 +21,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-COPY --from=development /app/dist ./dist
+COPY . .
+ARG DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+RUN npx prisma generate
+RUN npm run build
 
 CMD ["node", "dist/main.js"]
