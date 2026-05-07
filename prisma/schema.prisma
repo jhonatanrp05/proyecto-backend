@@ -6,3 +6,203 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  ADMIN
+  PROFESSOR
+  STUDENT
+}
+
+enum ChallengeStatus {
+  draft
+  published
+  archived
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  taughtCourses   Course[]         @relation("ProfessorCourses")
+  enrolledCourses CourseStudent[]
+  challenges      Challenge[]
+  submissions     Submission[]
+
+  @@map("users")
+}
+
+model Course {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  period    String
+  group     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professorId String
+  professor   User   @relation("ProfessorCourses", fields: [professorId], references: [id])
+
+  students    CourseStudent[]
+  challenges  Challenge[]
+  assessments Assessment[]
+
+  @@map("courses")
+}
+
+model CourseStudent {
+  courseId  String
+  studentId String
+  enrolledAt DateTime @default(now())
+
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, studentId])
+  @@map("course_students")
+}
+
+model Challenge {
+  id             String          @id @default(uuid())
+  title          String
+  description    String
+  difficulty     String
+  tags           String[]
+  databaseEngine String
+  timeLimit      Int
+  status         ChallengeStatus @default(draft)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  courseId  String
+  course    Course @relation(fields: [courseId], references: [id])
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
+
+  schema          ChallengeSchema?
+  seedData        SeedData?
+  expectedResult  ExpectedResult?
+  submissions     Submission[]
+
+  @@map("challenges")
+}
+
+model ChallengeSchema {
+  id          String   @id @default(uuid())
+  ddlScript   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  challengeId String    @unique
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("challenge_schemas")
+}
+
+model SeedData {
+  id            String   @id @default(uuid())
+  insertScript  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  challengeId String    @unique
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("seed_data")
+}
+
+model ExpectedResult {
+  id         String   @id @default(uuid())
+  query      String
+  outputJson Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  challengeId String    @unique
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("expected_results")
+}
+
+model Submission {
+  id        String           @id @default(uuid())
+  engine    String
+  query     String
+  status    SubmissionStatus @default(QUEUED)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  studentId   String
+  student     User      @relation(fields: [studentId], references: [id])
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+
+  result          SubmissionResult?
+  recommendation  Recommendation?
+
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  QUEUED
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  SYNTAX_ERROR
+  TIME_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  OPTIMIZATION_REQUIRED
+}
+
+model SubmissionResult {
+  id              String   @id @default(uuid())
+  status          String
+  score           Int      @default(0)
+  executionTimeMs Int      @default(0)
+  tests           Json     @default("[]")
+  createdAt       DateTime @default(now())
+
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("submission_results")
+}
+
+model Recommendation {
+  id               String   @id @default(uuid())
+  explanation      String
+  suggestions      String[]
+  indexSuggestions String[]
+  rewrittenQuery   String?
+  createdAt        DateTime @default(now())
+
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("recommendations")
+}
+
+model Assessment {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  duration    Int
+  maxAttempts Int      @default(3)
+  visibility  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+
+  challengeIds String[]
+
+  @@map("assessments")
+}
