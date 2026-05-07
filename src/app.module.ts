@@ -7,6 +7,7 @@ import { JwtAuthGuard, RolesGuard } from './shared/guards';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CoursesModule } from './modules/courses/courses.module';
+import { AssessmentsModule } from './modules/assessments/assessments.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CoursesModule } from './modules/courses/courses.module';
     AuthModule,
     UsersModule,
     CoursesModule,
+    AssessmentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

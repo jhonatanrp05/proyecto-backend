@@ -25,12 +25,17 @@ export class AssessmentsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Crear evaluación'
+    summary: 'Create assessment [PROFESSOR, ADMIN]',
+    description: 'Allows a professor to create a new SQL assessment'
   })
   @ApiResponse({
     status: 201,
-    description: 'Evaluación creada exitosamente',
+    description: 'Assessment created successfully',
     type: AssessmentResponseDto
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied'
   })
   create(
     @Body() createAssessmentDto: CreateAssessmentDto
@@ -41,10 +46,12 @@ export class AssessmentsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Listar evaluaciones'
+    summary: 'Get all assessments [PROFESSOR, ADMIN]',
+    description: 'Returns a list of all available assessments'
   })
   @ApiResponse({
     status: 200,
+    description: 'Assessments retrieved successfully',
     type: [AssessmentResponseDto]
   })
   findAll(): AssessmentResponseDto[] {
@@ -54,11 +61,17 @@ export class AssessmentsController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Obtener evaluación por ID'
+    summary: 'Get assessment by ID [PROFESSOR, ADMIN]',
+    description: 'Returns detailed information about a specific assessment'
   })
   @ApiResponse({
     status: 200,
+    description: 'Assessment retrieved successfully',
     type: AssessmentResponseDto
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Assessment not found'
   })
   findOne(
     @Param('id') id: string
@@ -69,11 +82,17 @@ export class AssessmentsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Actualizar evaluación'
+    summary: 'Update assessment [PROFESSOR, ADMIN]',
+    description: 'Updates assessment information'
   })
   @ApiResponse({
     status: 200,
+    description: 'Assessment updated successfully',
     type: AssessmentResponseDto
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Assessment not found'
   })
   update(
     @Param('id') id: string,
