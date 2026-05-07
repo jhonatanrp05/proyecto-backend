@@ -15,7 +15,7 @@ export class ChallengeMapper {
       timeLimit: record.timeLimit,
       status: record.status,
       courseId: record.courseId,
-      createdBy: record.createdBy,
+      createdBy: record.createdBy, // el campo en DB sigue siendo createdBy
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     });

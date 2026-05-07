@@ -1,3 +1,7 @@
+import { ChallengeSchema } from './challenge-schema.entity';
+import { SeedData } from './seed-data.entity';
+import { ExpectedResult } from './expected-result.entity';
+
 export type ChallengeStatus = 'draft' | 'published' | 'archived';
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -5,17 +9,16 @@ export class Challenge {
   id!: string;
   title!: string;
   description!: string;
-  difficulty!: Difficulty;
+  difficulty!: string; // string para coincidir con el schema de D1
   tags!: string[];
   databaseEngine!: string;
-  timeLimit!: number; // en milisegundos
+  timeLimit!: number;
   status!: ChallengeStatus;
   courseId!: string;
-  createdBy!: string; //profesor
+  createdBy!: string;
   createdAt!: Date;
   updatedAt!: Date;
 
-  // Relaciones opcionales 
   schema?: ChallengeSchema;
   seedData?: SeedData;
   expectedResult?: ExpectedResult;
@@ -24,10 +27,11 @@ export class Challenge {
     Object.assign(this, partial);
   }
 
-  // Máquina de estados
   publish(): void {
     if (this.status !== 'draft') {
-      throw new Error(`No se puede publicar un reto en estado "${this.status}". Solo se pueden publicar retos en estado "draft".`);
+      throw new Error(
+        `No se puede publicar un reto en estado "${this.status}". Solo se pueden publicar retos en estado "draft".`,
+      );
     }
     this.status = 'published';
     this.updatedAt = new Date();
@@ -43,7 +47,9 @@ export class Challenge {
 
   backToDraft(): void {
     if (this.status !== 'published') {
-      throw new Error(`Solo se puede volver a draft desde "published". Estado actual: "${this.status}".`);
+      throw new Error(
+        `Solo se puede volver a draft desde "published". Estado actual: "${this.status}".`,
+      );
     }
     this.status = 'draft';
     this.updatedAt = new Date();
@@ -53,8 +59,3 @@ export class Challenge {
     return this.status === 'published';
   }
 }
-
-
-import { ChallengeSchema } from './challenge-schema.entity';
-import { SeedData } from './seed-data.entity';
-import { ExpectedResult } from './expected-result.entity';
