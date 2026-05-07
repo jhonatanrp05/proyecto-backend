@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/prisma';
+import { Role } from '../../../shared/constants';
 import { IUserRepository } from '../domain/user.repository.interface';
 
 const SELECT_SAFE = {
@@ -25,7 +26,7 @@ export class UserRepository implements IUserRepository {
 
   update(
     id: string,
-    data: Partial<{ name: string; email: string; role: string }>,
+    data: Partial<{ name: string; email: string; role: Role }>,
   ) {
     return this.prisma.user.update({
       where: { id },

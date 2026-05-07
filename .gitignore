@@ -29,3 +29,7 @@ npm-debug.log*
 docker-compose.override.yml
 
 /generated/prisma
+
+#md
+*.md
+!README.md
