@@ -25,7 +25,7 @@ export class AssessmentsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Create assessment [PROFESSOR, ADMIN]',
+    summary: 'Create assessment [PROFESSOR]',
     description: 'Allows a professor to create a new SQL assessment'
   })
   @ApiResponse({
@@ -46,7 +46,7 @@ export class AssessmentsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get all assessments [PROFESSOR, ADMIN]',
+    summary: 'Get all assessments [PROFESSOR, STUDENT]',
     description: 'Returns a list of all available assessments'
   })
   @ApiResponse({
@@ -61,7 +61,7 @@ export class AssessmentsController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Get assessment by ID [PROFESSOR, ADMIN]',
+    summary: 'Get assessment by ID [PROFESSOR, STUDENT]',
     description: 'Returns detailed information about a specific assessment'
   })
   @ApiResponse({
@@ -82,7 +82,7 @@ export class AssessmentsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update assessment [PROFESSOR, ADMIN]',
+    summary: 'Update assessment [PROFESSOR]',
     description: 'Updates assessment information'
   })
   @ApiResponse({
