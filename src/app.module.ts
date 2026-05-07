@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { AssessmentsModule } from './modules/assessments/assessments.module';
+import { SubmissionsModule } from './modules/submissions/submissions.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AssessmentsModule } from './modules/assessments/assessments.module';
     UsersModule,
     CoursesModule,
     AssessmentsModule,
+    SubmissionsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
