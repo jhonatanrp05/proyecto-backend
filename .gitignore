@@ -17,7 +17,7 @@ Thumbs.db
 
 # Environment
 .env
-
+.env.example
 # Testing
 coverage/
 
@@ -30,6 +30,8 @@ docker-compose.override.yml
 
 /generated/prisma
 
+
 #md
 *.md
 !README.md
+

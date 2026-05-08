@@ -3,14 +3,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './shared/prisma';
+
+
 import { JwtAuthGuard, RolesGuard } from './shared/guards';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { AssessmentsModule } from './modules/assessments/assessments.module';
-import { RecommendationsModule } from './modules/recommendations/recommendations.module';
+import { ChallengesModule } from './modules/challenges/challenges.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
-
 
 @Module({
   imports: [
@@ -31,11 +32,12 @@ import { SubmissionsModule } from './modules/submissions/submissions.module';
       }),
     }),
 
+
     AuthModule,
     UsersModule,
     CoursesModule,
+    ChallengesModule,
     AssessmentsModule,
-    RecommendationsModule,
     SubmissionsModule,
     
   ],
@@ -43,5 +45,6 @@ import { SubmissionsModule } from './modules/submissions/submissions.module';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
+
 })
 export class AppModule {}

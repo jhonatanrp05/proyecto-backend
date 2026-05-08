@@ -19,6 +19,17 @@ enum ChallengeStatus {
   archived
 }
 
+enum SubmissionStatus {
+  QUEUED
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  SYNTAX_ERROR
+  TIME_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  OPTIMIZATION_REQUIRED
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -28,7 +39,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  taughtCourses   Course[]         @relation("ProfessorCourses")
+  taughtCourses   Course[]        @relation("ProfessorCourses")
   enrolledCourses CourseStudent[]
   challenges      Challenge[]
   submissions     Submission[]
@@ -56,8 +67,8 @@ model Course {
 }
 
 model CourseStudent {
-  courseId  String
-  studentId String
+  courseId   String
+  studentId  String
   enrolledAt DateTime @default(now())
 
   course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -84,19 +95,19 @@ model Challenge {
   createdBy String
   creator   User   @relation(fields: [createdBy], references: [id])
 
-  schema          ChallengeSchema?
-  seedData        SeedData?
-  expectedResult  ExpectedResult?
-  submissions     Submission[]
+  schema         ChallengeSchema?
+  seedData       SeedData?
+  expectedResult ExpectedResult?
+  submissions    Submission[]
 
   @@map("challenges")
 }
 
 model ChallengeSchema {
-  id          String   @id @default(uuid())
-  ddlScript   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  ddlScript String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   challengeId String    @unique
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
@@ -105,10 +116,11 @@ model ChallengeSchema {
 }
 
 model SeedData {
-  id            String   @id @default(uuid())
-  insertScript  String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  insertScript String
+  isGenerated  Boolean  @default(false)  // agregado por Dev 2
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   challengeId String    @unique
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
@@ -142,21 +154,10 @@ model Submission {
   challengeId String
   challenge   Challenge @relation(fields: [challengeId], references: [id])
 
-  result          SubmissionResult?
-  recommendation  Recommendation?
+  result         SubmissionResult?
+  recommendation Recommendation?
 
   @@map("submissions")
-}
-
-enum SubmissionStatus {
-  QUEUED
-  RUNNING
-  ACCEPTED
-  WRONG_ANSWER
-  SYNTAX_ERROR
-  TIME_LIMIT_EXCEEDED
-  RUNTIME_ERROR
-  OPTIMIZATION_REQUIRED
 }
 
 model SubmissionResult {

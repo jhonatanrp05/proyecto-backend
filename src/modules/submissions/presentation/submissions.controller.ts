@@ -1,92 +1,52 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
+  HttpCode,
+  HttpStatus,
   Param,
-  Body,
+  Post,
 } from '@nestjs/common';
-
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from '../../../shared/decorators';
+import { Role } from '../../../shared/constants/roles.enum';
+import { CurrentUser } from '../../../shared/decorators';
+import { SubmissionsService } from '../application/submissions.service';
+import { CreateSubmissionDto } from '../application/dtos/create-submission.dto';
 
-import { Roles, CurrentUser } from '../../../shared/decorators';
-import { Role } from '../../../shared/constants';
-
-@ApiTags('submissions')
+@ApiTags('Submissions')
 @ApiBearerAuth()
 @Controller('submissions')
 export class SubmissionsController {
+  constructor(private readonly submissionsService: SubmissionsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles(Role.STUDENT)
   @ApiOperation({
-    summary: 'Create submission [STUDENT]',
-    description: 'Allows a student to submit a SQL query solution'
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Submission created successfully'
+    summary: 'Enviar una solución SQL [STUDENT]',
+    description:
+      'El estudiante envía una consulta SQL para un reto. El sistema la registra y la encola para evaluación automática.',
   })
   create(
-    @Body() body: any
+    @Body() dto: CreateSubmissionDto,
+    @CurrentUser() user: { id: string },
   ) {
-    return {};
+    return this.submissionsService.create(dto, user.id);
   }
 
   @Get(':id')
-  @Roles(Role.STUDENT, Role.PROFESSOR)
+  @Roles(Role.STUDENT, Role.PROFESSOR, Role.ADMIN)
   @ApiOperation({
-    summary: 'Get submission by ID [STUDENT, PROFESSOR]',
-    description: 'Returns detailed information about a submission'
+    summary: 'Consultar estado de un submission [STUDENT, PROFESSOR, ADMIN]',
+    description:
+      'Permite consultar el estado actual de un submission y su resultado si ya fue evaluado.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Submission retrieved successfully'
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Submission not found'
-  })
-  findOne(
-    @Param('id') id: string
-  ) {
-    return {};
+  findOne(@Param('id') id: string) {
+    return this.submissionsService.findById(id);
   }
-
-  @Get(':id/result')
-  @Roles(Role.STUDENT, Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Get submission result [STUDENT, PROFESSOR]',
-    description: 'Returns execution result and evaluation status for a submission'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Submission result retrieved successfully'
-  })
-  getResult(
-    @Param('id') id: string
-  ) {
-    return {};
-  }
-
-  @Get(':id/feedback')
-  @Roles(Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get submission feedback [STUDENT]',
-    description: 'Returns personalized feedback for a submission'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Feedback retrieved successfully'
-  })
-  getFeedback(
-    @Param('id') id: string
-  ) {
-    return {};
-  }
-
 }

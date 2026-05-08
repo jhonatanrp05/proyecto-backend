@@ -76,6 +76,7 @@ CREATE TABLE "challenge_schemas" (
 CREATE TABLE "seed_data" (
     "id" TEXT NOT NULL,
     "insertScript" TEXT NOT NULL,
+    "isGenerated" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "challengeId" TEXT NOT NULL,
