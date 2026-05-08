@@ -39,6 +39,7 @@ import { SubmissionsModule } from './modules/submissions/submissions.module';
     ChallengesModule,
     AssessmentsModule,
     SubmissionsModule,
+    
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
