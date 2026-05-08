@@ -30,7 +30,7 @@ docker-compose.override.yml
 
 /generated/prisma
 
-
+/prisma/migrations
 #md
 *.md
 !README.md
