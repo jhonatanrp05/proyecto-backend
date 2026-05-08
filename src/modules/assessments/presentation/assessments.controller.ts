@@ -23,7 +23,7 @@ import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { AssessmentResponseDto } from './dto/assessment-response.dto';
 
-@ApiTags('Assessments')
+@ApiTags('assessments')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @Controller('assessments')
