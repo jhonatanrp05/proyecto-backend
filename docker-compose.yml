@@ -41,18 +41,23 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    command: node dist/worker/main.js
+    command: npm run start:worker
     env_file: .env
     environment:
-      DB_HOST: postgres
+      DATABASE_URL: postgresql://admin:secret@postgres:5432/sqlplatform?schema=public
       REDIS_HOST: redis
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/generated
+      - /var/run/docker.sock:/var/run/docker.sock
 
   postgres:
     image: postgres:16
