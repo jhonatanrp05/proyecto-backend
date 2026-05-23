@@ -55,6 +55,32 @@ export class PrismaChallengeRepository implements ChallengeRepository {
     });
     return records.map(ChallengeMapper.toDomain);
   }
+  async findAllForStudent(studentId: string): Promise<Challenge[]> {
+  const records = await this.prisma.challenge.findMany({
+    where: {
+      status: 'published',
+      course: {
+        students: {
+          some: {
+            studentId,
+          },
+        },
+      },
+    },
+    include: { schema: true, seedData: true, expectedResult: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  return records.map(ChallengeMapper.toDomain);
+}
+
+async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
+  const enrollment = await this.prisma.courseStudent.findUnique({
+    where: {
+      courseId_studentId: { courseId, studentId },
+    },
+  });
+  return !!enrollment;
+}
 
   async update(id: string, partial: Partial<Challenge>): Promise<Challenge> {
     const record = await this.prisma.challenge.update({

@@ -11,7 +11,6 @@ export class ChallengeSchema {
 
   /**
    * Valida que el script no esté vacío y tenga al menos un CREATE TABLE.
-   * Validación básica.
    */
   isValid(): boolean {
     if (!this.ddlScript || this.ddlScript.trim().length === 0) return false;

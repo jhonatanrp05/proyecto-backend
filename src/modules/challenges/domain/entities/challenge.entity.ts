@@ -9,7 +9,7 @@ export class Challenge {
   id!: string;
   title!: string;
   description!: string;
-  difficulty!: string; // string para coincidir con el schema de D1
+  difficulty!: string;
   tags!: string[];
   databaseEngine!: string;
   timeLimit!: number;

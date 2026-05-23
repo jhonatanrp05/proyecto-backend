@@ -59,26 +59,32 @@ export class ChallengesController {
 
   //  GET /challenges
 
-  @Get()
-  @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({ summary: 'Listar retos' })
-  @ApiQuery({ name: 'courseId', required: false })
-  findAll(@Query('courseId') courseId: string, @Request() req: any) {
-    const isStudent = req.user.role === Role.STUDENT;
-    return this.getChallenges.execute({ courseId, onlyPublished: isStudent });
-  }
+@Get()
+@Roles(Role.PROFESSOR, Role.STUDENT)
+@ApiOperation({ summary: 'Listar retos, con filtros opcionales' })
+findAll(@Query('courseId') courseId: string, @Request() req: any) {
+  const isStudent = req.user.role === 'STUDENT';
+  return this.getChallenges.execute({
+    courseId,
+    onlyPublished: isStudent,
+    studentId: isStudent ? req.user.id : undefined,
+  });
+}
 
   
   //  GET /challenges/:id
   
 
-  @Get(':id')
-  @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({ summary: 'Obtener un reto por id' })
-  findOne(@Param('id') id: string, @Request() req: any) {
-    const isStudent = req.user.role === Role.STUDENT;
-    return this.getChallengeById.execute(id, isStudent);
-  }
+@Get(':id')
+@Roles(Role.PROFESSOR, Role.STUDENT)
+findOne(@Param('id') id: string, @Request() req: any) {
+  const isStudent = req.user.role === 'STUDENT';
+  return this.getChallengeById.execute(
+    id,
+    isStudent,
+    isStudent ? req.user.id : undefined,
+  );
+}
 
   
   //  PATCH /challenges/:id
