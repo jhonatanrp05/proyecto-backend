@@ -39,10 +39,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  taughtCourses   Course[]        @relation("ProfessorCourses")
-  enrolledCourses CourseStudent[]
-  challenges      Challenge[]
-  submissions     Submission[]
+  taughtCourses      Course[]             @relation("ProfessorCourses")
+  enrolledCourses    CourseStudent[]
+  challenges         Challenge[]
+  submissions        Submission[]
+  assessmentAttempts AssessmentAttempt[]
 
   @@map("users")
 }
@@ -99,6 +100,7 @@ model Challenge {
   seedData       SeedData?
   expectedResult ExpectedResult?
   submissions    Submission[]
+  assessments    AssessmentChallenge[]
 
   @@map("challenges")
 }
@@ -203,7 +205,35 @@ model Assessment {
   courseId String
   course   Course @relation(fields: [courseId], references: [id])
 
-  challengeIds String[]
+  challenges AssessmentChallenge[]
+  attempts   AssessmentAttempt[]
 
   @@map("assessments")
+}
+
+model AssessmentChallenge {
+  assessmentId String
+  challengeId  String
+  order        Int    @default(0)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  challenge  Challenge  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@id([assessmentId, challengeId])
+  @@map("assessment_challenges")
+}
+
+model AssessmentAttempt {
+  id          String    @id @default(uuid())
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  score       Int?
+  createdAt   DateTime  @default(now())
+
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_attempts")
 }
