@@ -3,112 +3,103 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
-  UseGuards,
+  Query,
 } from '@nestjs/common';
-
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
-
-
 import { Roles, CurrentUser } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
-import { RolesGuard } from '../../../shared/guards';
+import { AssessmentsService } from '../application/assessments.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
-import { AssessmentResponseDto } from './dto/assessment-response.dto';
+import { IsUUID } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+class AddChallengeDto {
+  @ApiProperty({ example: 'challenge-uuid' })
+  challengeId: string;
+
+  @ApiProperty({
+    example: 1,
+    description: 'Orden del reto dentro de la evaluación',
+  })
+  order: number;
+}
 
 @ApiTags('assessments')
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
 @Controller('assessments')
 export class AssessmentsController {
+  constructor(private readonly assessmentsService: AssessmentsService) {}
 
   @Post()
   @Roles(Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Create assessment [PROFESSOR]',
-    description: 'Allows a professor to create a new SQL assessment'
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Assessment created successfully',
-    type: AssessmentResponseDto
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Access denied'
-  })
-  create(
-    @Body() createAssessmentDto: CreateAssessmentDto
-  ): AssessmentResponseDto {
-
-    return {} as AssessmentResponseDto;
+  @ApiOperation({ summary: 'Create assessment [PROFESSOR]' })
+  @ApiResponse({ status: 201, description: 'Assessment created' })
+  create(@Body() dto: CreateAssessmentDto, @CurrentUser('id') userId: string) {
+    return this.assessmentsService.create({ ...dto } as any);
   }
 
   @Get()
   @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get all assessments [PROFESSOR, STUDENT]',
-    description: 'Returns a list of all available assessments'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Assessments retrieved successfully',
-    type: [AssessmentResponseDto]
-  })
-  findAll(): AssessmentResponseDto[] {
-
-    return [];
+  @ApiOperation({ summary: 'List assessments [PROFESSOR, STUDENT]' })
+  @ApiQuery({ name: 'courseId', required: false })
+  findAll(@Query('courseId') courseId?: string) {
+    return this.assessmentsService.findAll(courseId);
   }
 
   @Get(':id')
   @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get assessment by ID [PROFESSOR, STUDENT]',
-    description: 'Returns detailed information about a specific assessment'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Assessment retrieved successfully',
-    type: AssessmentResponseDto
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Assessment not found'
-  })
-  findOne(
-    @Param('id') id: string
-  ): AssessmentResponseDto {
-
-    return {} as AssessmentResponseDto;
+  @ApiOperation({ summary: 'Get assessment by ID [PROFESSOR, STUDENT]' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  findOne(@Param('id') id: string) {
+    return this.assessmentsService.findById(id);
   }
 
   @Patch(':id')
   @Roles(Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Update assessment [PROFESSOR]',
-    description: 'Updates assessment information'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Assessment updated successfully',
-    type: AssessmentResponseDto
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Assessment not found'
-  })
+  @ApiOperation({ summary: 'Update assessment [PROFESSOR]' })
   update(
     @Param('id') id: string,
-    @Body() updateAssessmentDto: UpdateAssessmentDto
-  ): AssessmentResponseDto {
+    @Body() dto: UpdateAssessmentDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.assessmentsService.update(id, userId, dto as any);
+  }
 
-    return {} as AssessmentResponseDto;
+  @Delete(':id')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({ summary: 'Delete assessment [PROFESSOR]' })
+  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.assessmentsService.delete(id, userId);
+  }
+
+  @Post(':id/challenges')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({ summary: 'Add challenge to assessment [PROFESSOR]' })
+  addChallenge(@Param('id') id: string, @Body() dto: AddChallengeDto) {
+    return this.assessmentsService.addChallenge(
+      id,
+      dto.challengeId,
+      dto.order ?? 0,
+    );
+  }
+
+  @Delete(':id/challenges/:challengeId')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({ summary: 'Remove challenge from assessment [PROFESSOR]' })
+  removeChallenge(
+    @Param('id') id: string,
+    @Param('challengeId') challengeId: string,
+  ) {
+    return this.assessmentsService.removeChallenge(id, challengeId);
   }
 }
