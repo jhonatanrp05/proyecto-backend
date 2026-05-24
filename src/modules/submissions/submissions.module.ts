@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../../shared/prisma';
-import { SubmissionsService, SUBMISSIONS_QUEUE } from './application/submissions.service';
+import {
+  SubmissionsService,
+  SUBMISSIONS_QUEUE,
+} from './application/submissions.service';
 import { SubmissionsController } from './presentation/submissions.controller';
 import { SubmissionRepository } from './infrastructure/submission.repository';
+import { SubmissionsProcessor } from './infrastructure/submissions.processor';
+import { SqlRunnerService } from './infrastructure/sql-runner.service';
 import { SUBMISSION_REPOSITORY } from './domain/submission.repository.interface';
+import { SqlAnalyzerService } from '../recommendations/application/sql-analyzer.service';
 
 @Module({
   imports: [
@@ -17,6 +23,9 @@ import { SUBMISSION_REPOSITORY } from './domain/submission.repository.interface'
   controllers: [SubmissionsController],
   providers: [
     SubmissionsService,
+    SubmissionsProcessor,
+    SqlRunnerService,
+    SqlAnalyzerService,
     { provide: SUBMISSION_REPOSITORY, useClass: SubmissionRepository },
   ],
   exports: [SubmissionsService],
