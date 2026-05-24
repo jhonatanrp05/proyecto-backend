@@ -4,6 +4,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../shared/prisma';
 import { SUBMISSIONS_QUEUE } from '../modules/submissions/application/submissions.service';
 import { SubmissionsProcessor } from '../modules/submissions/infrastructure/submissions.processor';
+import { SqlRunnerService } from '../modules/submissions/infrastructure/sql-runner.service';
+import { SqlAnalyzerService } from '../modules/recommendations/application/sql-analyzer.service';
 
 @Module({
   imports: [
@@ -28,6 +30,6 @@ import { SubmissionsProcessor } from '../modules/submissions/infrastructure/subm
       name: SUBMISSIONS_QUEUE,
     }),
   ],
-  providers: [SubmissionsProcessor],
+  providers: [SubmissionsProcessor, SqlRunnerService, SqlAnalyzerService],
 })
 export class WorkerModule {}
