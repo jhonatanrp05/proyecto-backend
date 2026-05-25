@@ -1,58 +1,47 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { 
+  IsString, IsOptional, IsDateString, 
+  IsInt, IsBoolean, IsArray, IsUUID, Min 
+} from 'class-validator';
 
 export class CreateAssessmentDto {
+  @ApiProperty({ example: 'Parcial 1 SQL' })
+  @IsString()
+  name!: string;
 
-  @ApiProperty({
-    example: 'Parcial 1 SQL',
-    description: 'Nombre de la evaluación'
-  })
-  name: string;
+  @ApiProperty({ example: 'Evaluación sobre joins y subconsultas', required: false })
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-  @ApiProperty({
-    example: 'Evaluación sobre joins, group by y subconsultas',
-    description: 'Descripción de la evaluación'
-  })
-  description: string;
+  @ApiProperty({ example: '2026-05-15T08:00:00Z' })
+  @IsDateString()
+  startDate!: string;
 
-  @ApiProperty({
-    example: '2026-05-15T08:00:00Z',
-    description: 'Fecha de inicio'
-  })
-  startDate: string;
+  @ApiProperty({ example: '2026-05-15T10:00:00Z' })
+  @IsDateString()
+  endDate!: string;
 
-  @ApiProperty({
-    example: '2026-05-15T10:00:00Z',
-    description: 'Fecha de finalización'
-  })
-  endDate: string;
+  @ApiProperty({ example: 120 })
+  @IsInt()
+  @Min(1)
+  duration!: number;
 
-  @ApiProperty({
-    example: 120,
-    description: 'Duración en minutos'
-  })
-  duration: number;
+  @ApiProperty({ example: 3 })
+  @IsInt()
+  @Min(1)
+  maxAttempts!: number;
 
-  @ApiProperty({
-    example: 3,
-    description: 'Máximo número de intentos permitidos'
-  })
-  maxAttempts: number;
+  @ApiProperty({ example: true })
+  @IsBoolean()
+  visibility!: boolean;
 
-  @ApiProperty({
-    example: true,
-    description: 'Define si los resultados son visibles para estudiantes'
-  })
-  visibility: boolean;
+  @ApiProperty({ example: 'course-123' })
+  @IsUUID()
+  courseId!: string;
 
-  @ApiProperty({
-    example: 'course-123',
-    description: 'ID del curso asociado'
-  })
-  courseId: string;
-
-  @ApiProperty({
-    example: ['challenge-1', 'challenge-2'],
-    description: 'Lista de retos asociados'
-  })
-  challengeIds: string[];
+  @ApiProperty({ example: ['challenge-1', 'challenge-2'] })
+  @IsArray()
+  @IsUUID('all', { each: true })
+  challengeIds!: string[];
 }

@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Delete
 } from '@nestjs/common';
 
 import {
@@ -14,7 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 
 import { Roles, CurrentUser } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
@@ -23,18 +24,32 @@ import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { AssessmentResponseDto } from './dto/assessment-response.dto';
 
+import { CreateAssessmentUseCase } from '../application/use-cases/create-assessment.use-case';
+import { GetAssessmentUseCase } from '../application/use-cases/get-assessment.use-case';
+import { GetAllAssessmentsUseCase } from '../application/use-cases/get-all-assessments.use-case';
+import { UpdateAssessmentUseCase } from '../application/use-cases/update-assessment.use-case';
+import { AssessmentMapper } from '../application/mappers/assessment.mapper';
+
+
 @ApiTags('assessments')
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('assessments')
 export class AssessmentsController {
+  constructor(
+    private readonly createAssessmentUseCase: CreateAssessmentUseCase,
+    private readonly getAssessmentUseCase: GetAssessmentUseCase,
+    private readonly getAllAssessmentsUseCase: GetAllAssessmentsUseCase,
+    private readonly updateAssessmentUseCase: UpdateAssessmentUseCase,
+  ) {}
 
   @Post()
   @Roles(Role.PROFESSOR)
   @ApiOperation({
     summary: 'Create assessment [PROFESSOR]',
     description: 'Allows a professor to create a new SQL assessment'
-  })
+  })  
+
   @ApiResponse({
     status: 201,
     description: 'Assessment created successfully',
@@ -44,12 +59,11 @@ export class AssessmentsController {
     status: 403,
     description: 'Access denied'
   })
-  create(
-    @Body() createAssessmentDto: CreateAssessmentDto
-  ): AssessmentResponseDto {
-
-    return {} as AssessmentResponseDto;
-  }
+  async create(
+    @Body() body: CreateAssessmentDto,
+  ): Promise<AssessmentResponseDto> {
+  const assessment = await this.createAssessmentUseCase.execute(body);
+  return AssessmentMapper.toResponse(assessment);  }
 
   @Get()
   @Roles(Role.PROFESSOR, Role.STUDENT)
@@ -62,9 +76,9 @@ export class AssessmentsController {
     description: 'Assessments retrieved successfully',
     type: [AssessmentResponseDto]
   })
-  findAll(): AssessmentResponseDto[] {
-
-    return [];
+  async findAll(): Promise<AssessmentResponseDto[]> {
+    const assessments = await this.getAllAssessmentsUseCase.execute();
+    return assessments.map(AssessmentMapper.toResponse);
   }
 
   @Get(':id')
@@ -82,11 +96,9 @@ export class AssessmentsController {
     status: 404,
     description: 'Assessment not found'
   })
-  findOne(
-    @Param('id') id: string
-  ): AssessmentResponseDto {
-
-    return {} as AssessmentResponseDto;
+  async findOne(@Param('id') id: string): Promise<AssessmentResponseDto> {
+    const assessment = await this.getAssessmentUseCase.execute(id);
+    return AssessmentMapper.toResponse(assessment);
   }
 
   @Patch(':id')
@@ -104,11 +116,8 @@ export class AssessmentsController {
     status: 404,
     description: 'Assessment not found'
   })
-  update(
-    @Param('id') id: string,
-    @Body() updateAssessmentDto: UpdateAssessmentDto
-  ): AssessmentResponseDto {
-
-    return {} as AssessmentResponseDto;
-  }
+  async update(@Param('id') id: string, @Body() body: UpdateAssessmentDto): Promise<AssessmentResponseDto> {
+    const assessment = await this.updateAssessmentUseCase.execute(id, body);
+    return AssessmentMapper.toResponse(assessment);
+}
 }
