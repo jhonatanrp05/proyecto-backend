@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class AssessmentResponseDto {
   @ApiProperty({ example: 'assessment-123' })
   id!: string;
+  
 
   @ApiProperty({ example: 'Parcial 1 SQL' })
   name!: string;
@@ -22,7 +23,7 @@ export class AssessmentResponseDto {
   @ApiProperty({ example: 3 })
   maxAttempts!: number;
 
-  @ApiProperty({ example: 'true' })
+  @ApiProperty({ example: true })
   visibility!: boolean;
 
   @ApiProperty({ example: 'course-123' })

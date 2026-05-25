@@ -49,6 +49,7 @@ export class AssessmentsController {
     summary: 'Create assessment [PROFESSOR]',
     description: 'Allows a professor to create a new SQL assessment'
   })  
+
   @ApiResponse({
     status: 201,
     description: 'Assessment created successfully',
@@ -59,7 +60,7 @@ export class AssessmentsController {
     description: 'Access denied'
   })
   async create(
-    @Body() body: any
+    @Body() body: CreateAssessmentDto,
   ): Promise<AssessmentResponseDto> {
   const assessment = await this.createAssessmentUseCase.execute(body);
   return AssessmentMapper.toResponse(assessment);  }
@@ -115,7 +116,7 @@ export class AssessmentsController {
     status: 404,
     description: 'Assessment not found'
   })
-  async update(@Param('id') id: string, @Body() body: any): Promise<AssessmentResponseDto> {
+  async update(@Param('id') id: string, @Body() body: UpdateAssessmentDto): Promise<AssessmentResponseDto> {
     const assessment = await this.updateAssessmentUseCase.execute(id, body);
     return AssessmentMapper.toResponse(assessment);
 }
