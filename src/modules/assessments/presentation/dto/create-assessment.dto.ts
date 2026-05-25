@@ -6,53 +6,53 @@ export class CreateAssessmentDto {
     example: 'Parcial 1 SQL',
     description: 'Nombre de la evaluación'
   })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'Evaluación sobre joins, group by y subconsultas',
     description: 'Descripción de la evaluación'
   })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     example: '2026-05-15T08:00:00Z',
     description: 'Fecha de inicio'
   })
-  startDate: string;
+  startDate!: string;
 
   @ApiProperty({
     example: '2026-05-15T10:00:00Z',
     description: 'Fecha de finalización'
   })
-  endDate: string;
+  endDate!: string;
 
   @ApiProperty({
     example: 120,
     description: 'Duración en minutos'
   })
-  duration: number;
+  duration!: number;
 
   @ApiProperty({
     example: 3,
     description: 'Máximo número de intentos permitidos'
   })
-  maxAttempts: number;
+  maxAttempts!: number;
 
   @ApiProperty({
     example: true,
     description: 'Define si los resultados son visibles para estudiantes'
   })
-  visibility: boolean;
+  visibility!: boolean;
 
   @ApiProperty({
     example: 'course-123',
     description: 'ID del curso asociado'
   })
-  courseId: string;
+  courseId!: string;
 
   @ApiProperty({
     example: ['challenge-1', 'challenge-2'],
     description: 'Lista de retos asociados'
   })
-  challengeIds: string[];
+  challengeIds!: string[];
 }
