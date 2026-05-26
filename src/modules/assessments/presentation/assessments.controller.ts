@@ -51,16 +51,22 @@ export class AssessmentsController {
   @Roles(Role.PROFESSOR, Role.STUDENT)
   @ApiOperation({ summary: 'List assessments [PROFESSOR, STUDENT]' })
   @ApiQuery({ name: 'courseId', required: false })
-  findAll(@Query('courseId') courseId?: string) {
-    return this.assessmentsService.findAll(courseId);
+  findAll(
+    @Query('courseId') courseId: string | undefined,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.assessmentsService.findAll(courseId, user);
   }
 
   @Get(':id')
   @Roles(Role.PROFESSOR, Role.STUDENT)
   @ApiOperation({ summary: 'Get assessment by ID [PROFESSOR, STUDENT]' })
   @ApiResponse({ status: 404, description: 'Not found' })
-  findOne(@Param('id') id: string) {
-    return this.assessmentsService.findById(id);
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.assessmentsService.findById(id, user);
   }
 
   @Patch(':id')

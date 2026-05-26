@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   NotFoundException,
@@ -9,7 +8,7 @@ import { AssessmentsRepository } from '../infrastructure/assessments.repository'
 
 @Injectable()
 export class AssessmentsService {
-  constructor(private readonly assessmentsRepo: AssessmentsRepository) { }
+  constructor(private readonly assessmentsRepo: AssessmentsRepository) {}
 
   async create(
     professorId: string,
@@ -62,15 +61,48 @@ export class AssessmentsService {
     return assessment;
   }
 
-  async findAll(courseId?: string) {
+  async findAll(
+    courseId: string | undefined,
+    requester: { id: string; role: string },
+  ) {
+    if (requester.role === 'PROFESSOR') {
+      return this.assessmentsRepo.findAllByProfessor(requester.id, courseId);
+    }
+
+    if (requester.role === 'STUDENT') {
+      return this.assessmentsRepo.findAllByStudent(requester.id, courseId);
+    }
+
     return this.assessmentsRepo.findAll(courseId);
   }
 
-  async findById(id: string) {
+  async findById(id: string, requester?: { id: string; role: string }) {
     const assessment = await this.assessmentsRepo.findById(id);
     if (!assessment) {
       throw new NotFoundException(`Assessment ${id} no encontrado`);
     }
+
+    if (
+      requester?.role === 'PROFESSOR' &&
+      assessment.course.professorId !== requester.id
+    ) {
+      throw new ForbiddenException(
+        'Solo el profesor del curso puede ver esta evaluación',
+      );
+    }
+
+    if (requester?.role === 'STUDENT') {
+      const enrolled = await this.assessmentsRepo.isStudentEnrolled(
+        assessment.courseId,
+        requester.id,
+      );
+      if (!enrolled) {
+        throw new ForbiddenException(
+          'No estás inscrito en el curso de esta evaluación',
+        );
+      }
+    }
+
     return assessment;
   }
 
@@ -130,7 +162,9 @@ export class AssessmentsService {
       studentId,
     );
     if (!enrolled) {
-      throw new ForbiddenException('No estás inscrito en el curso de esta evaluación');
+      throw new ForbiddenException(
+        'No estás inscrito en el curso de esta evaluación',
+      );
     }
 
     const now = new Date();

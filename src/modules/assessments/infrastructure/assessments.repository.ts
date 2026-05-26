@@ -24,7 +24,7 @@ export interface UpdateAssessmentData {
 
 @Injectable()
 export class AssessmentsRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateAssessmentData) {
     return this.prisma.assessment.create({
@@ -44,6 +44,32 @@ export class AssessmentsRepository {
   async findAll(courseId?: string) {
     return this.prisma.assessment.findMany({
       where: courseId ? { courseId } : undefined,
+      include: { challenges: { include: { challenge: true } }, course: true },
+      orderBy: { startDate: 'asc' },
+    });
+  }
+
+  async findAllByProfessor(professorId: string, courseId?: string) {
+    return this.prisma.assessment.findMany({
+      where: {
+        ...(courseId ? { courseId } : {}),
+        course: { professorId },
+      },
+      include: { challenges: { include: { challenge: true } }, course: true },
+      orderBy: { startDate: 'asc' },
+    });
+  }
+
+  async findAllByStudent(studentId: string, courseId?: string) {
+    return this.prisma.assessment.findMany({
+      where: {
+        ...(courseId ? { courseId } : {}),
+        course: {
+          students: {
+            some: { studentId },
+          },
+        },
+      },
       include: { challenges: { include: { challenge: true } }, course: true },
       orderBy: { startDate: 'asc' },
     });
