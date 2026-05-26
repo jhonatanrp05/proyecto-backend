@@ -37,6 +37,7 @@ export interface FieldConfig {
   from?: string;
   to?: string;
   values?: string[];
+  // Fracción de valores nulos (0 = ninguno, 1 = todos). Ej: 0.1 = 10%
   nullable?: number;
   // Si es true, genera automáticamente filas con valores límite para este campo
   edgeCases?: boolean;

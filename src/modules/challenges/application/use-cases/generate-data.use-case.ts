@@ -9,12 +9,28 @@ import { SeedData } from '../../domain/entities/seed-data.entity';
 import {
   GenerateDataDto,
   FieldConfig,
+  FieldType,
   EdgeCaseRow,
 } from '../dtos/generate-data.dto';
 import { faker } from '@faker-js/faker';
 
 // Cuántas filas por INSERT — equilibrio entre rendimiento y memoria
 const BATCH_SIZE = 1_000;
+
+const ALLOWED_TYPES: FieldType[] = [
+  'foreign_key',
+  'decimal',
+  'integer',
+  'date',
+  'enum',
+  'boolean',
+  'string',
+  'name',
+  'email',
+  'phone',
+  'address',
+  'text',
+];
 
 @Injectable()
 export class GenerateDataUseCase {
@@ -45,9 +61,85 @@ export class GenerateDataUseCase {
       );
     }
 
+    this.validateDto(dto);
+
     const insertScript = this.buildInsertScript(dto);
 
     return this.challengeRepo.upsertSeedData(challengeId, insertScript, true);
+  }
+
+  // ------------------------------------------------------------------ //
+  //  Validación de la configuración recibida
+  // ------------------------------------------------------------------ //
+
+  private validateDto(dto: GenerateDataDto): void {
+    if (!dto.tables || dto.tables.length === 0) {
+      throw new BadRequestException('Debes definir al menos una tabla.');
+    }
+
+    for (const t of dto.tables) {
+      const columns = Object.keys(t.fields ?? {});
+      if (columns.length === 0) {
+        throw new BadRequestException(
+          `La tabla "${t.table}" no tiene campos definidos.`,
+        );
+      }
+
+      for (const [name, cfg] of Object.entries(t.fields)) {
+        if (!ALLOWED_TYPES.includes(cfg.type)) {
+          throw new BadRequestException(
+            `Campo "${name}": tipo "${cfg.type}" no es válido.`,
+          );
+        }
+
+        if (
+          cfg.nullable !== undefined &&
+          (typeof cfg.nullable !== 'number' ||
+            cfg.nullable < 0 ||
+            cfg.nullable > 1)
+        ) {
+          throw new BadRequestException(
+            `Campo "${name}": "nullable" debe ser una fracción entre 0 y 1.`,
+          );
+        }
+
+        if (
+          (cfg.type === 'integer' || cfg.type === 'decimal') &&
+          cfg.min !== undefined &&
+          cfg.max !== undefined &&
+          cfg.min > cfg.max
+        ) {
+          throw new BadRequestException(
+            `Campo "${name}": "min" no puede ser mayor que "max".`,
+          );
+        }
+
+        if (
+          cfg.type === 'foreign_key' &&
+          (!cfg.references || !/^[^.]+\.[^.]+$/.test(cfg.references))
+        ) {
+          throw new BadRequestException(
+            `Campo "${name}": "references" debe tener el formato "tabla.columna".`,
+          );
+        }
+
+        if (cfg.type === 'enum' && (!cfg.values || cfg.values.length === 0)) {
+          throw new BadRequestException(
+            `Campo "${name}": "enum" requiere al menos un valor en "values".`,
+          );
+        }
+      }
+
+      for (const ec of t.edgeCases ?? []) {
+        for (const key of Object.keys(ec.values)) {
+          if (!columns.includes(key)) {
+            throw new BadRequestException(
+              `Caso borde "${ec.description}": la columna "${key}" no existe en la tabla "${t.table}".`,
+            );
+          }
+        }
+      }
+    }
   }
 
   // ------------------------------------------------------------------ //
@@ -165,14 +257,12 @@ export class GenerateDataUseCase {
       case 'integer': {
         const min = config.min ?? 0;
         const max = config.max ?? 1_000_000;
-        edges.push({ value: String(min), description: `valor mínimo (${min})` });
-        edges.push({ value: String(max), description: `valor máximo (${max})` });
-        edges.push({ value: '0', description: 'cero' });
-        if (min > 0) {
-          edges.push({
-            value: String(min - 1),
-            description: `justo debajo del mínimo (${min - 1})`,
-          });
+        const candidates = new Map<string, string>();
+        candidates.set(String(min), `valor mínimo (${min})`);
+        candidates.set(String(max), `valor máximo (${max})`);
+        if (min <= 0 && 0 <= max) candidates.set('0', 'cero');
+        for (const [value, description] of candidates) {
+          edges.push({ value, description });
         }
         break;
       }
@@ -180,13 +270,17 @@ export class GenerateDataUseCase {
       case 'decimal': {
         const min = config.min ?? 0;
         const max = config.max ?? 1_000;
-        edges.push({ value: String(min), description: `valor mínimo (${min})` });
-        edges.push({ value: String(max), description: `valor máximo (${max})` });
-        edges.push({ value: '0.00', description: 'cero' });
-        edges.push({
-          value: String(Number((min + 0.01).toFixed(2))),
-          description: `mínimo + 0.01`,
-        });
+        const candidates = new Map<string, string>();
+        candidates.set(String(min), `valor mínimo (${min})`);
+        candidates.set(String(max), `valor máximo (${max})`);
+        if (min <= 0 && 0 <= max) candidates.set('0.00', 'cero');
+        const justAboveMin = Number((min + 0.01).toFixed(2));
+        if (justAboveMin <= max) {
+          candidates.set(String(justAboveMin), 'mínimo + 0.01');
+        }
+        for (const [value, description] of candidates) {
+          edges.push({ value, description });
+        }
         break;
       }
 
