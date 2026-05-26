@@ -32,6 +32,7 @@ export class SqlRunnerService {
   private readonly DB_PASSWORD = 'runner_secret';
   private readonly DB_NAME = 'evaldb';
   private readonly DB_USER = 'postgres';
+  private readonly IMAGE = 'postgres:16';
 
   async run(input: SqlRunnerInput): Promise<SqlRunnerOutput> {
     const containerName = `sql-eval-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -44,8 +45,10 @@ export class SqlRunnerService {
     let container: Dockerode.Container | null = null;
 
     try {
+      await this.ensureImage();
+
       container = await this.docker.createContainer({
-        Image: 'postgres:16',
+        Image: this.IMAGE,
         name: containerName,
         Env: [
           `POSTGRES_PASSWORD=${this.DB_PASSWORD}`,
@@ -85,10 +88,28 @@ export class SqlRunnerService {
           await client.query(input.seedScript);
         }
 
+        // El DDL/seed se cargan como superusuario, pero la consulta del estudiante
+        // se ejecuta con un rol sin privilegios y solo SELECT. Así no puede escribir,
+        // borrar tablas, leer archivos del servidor (pg_read_file) ni ejecutar
+        // comandos (COPY ... TO PROGRAM), aunque el contenedor ya sea efímero.
+        await client.query(
+          `CREATE ROLE sandbox NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;
+           GRANT USAGE ON SCHEMA public TO sandbox;
+           GRANT SELECT ON ALL TABLES IN SCHEMA public TO sandbox;`,
+        );
+
+        // Límite de tiempo del lado del servidor: Postgres cancela la consulta al
+        // superar el límite (error 57014), liberando recursos de inmediato. El
+        // Promise.race queda como backstop ante cuelgues de conexión.
+        await client.query(
+          `SET statement_timeout = ${Math.ceil(input.timeLimitMs)}`,
+        );
+        await client.query('SET ROLE sandbox');
+
         const start = Date.now();
         const result = await Promise.race([
           client.query(input.studentQuery),
-          this.timeout(input.timeLimitMs),
+          this.timeout(input.timeLimitMs + 2000),
         ]);
         const executionTimeMs = Date.now() - start;
 
@@ -134,6 +155,7 @@ export class SqlRunnerService {
     }
   }
 
+<<<<<<< HEAD
   private async captureExplainPlan(
     client: Client,
     studentQuery: string,
@@ -154,6 +176,25 @@ export class SqlRunnerService {
       this.logger.debug(`EXPLAIN ANALYZE no disponible: ${err?.message}`);
       return undefined;
     }
+=======
+  // Descarga la imagen del runner si no está presente, evitando que la primera
+  // evaluación falle en un entorno limpio.
+  private async ensureImage(): Promise<void> {
+    const images = await this.docker.listImages({
+      filters: { reference: [this.IMAGE] },
+    });
+    if (images.length > 0) return;
+
+    this.logger.log(`Descargando imagen ${this.IMAGE}...`);
+    await new Promise<void>((resolve, reject) => {
+      this.docker.pull(this.IMAGE, (err: any, stream: NodeJS.ReadableStream) => {
+        if (err) return reject(err);
+        this.docker.modem.followProgress(stream, (e: any) =>
+          e ? reject(e) : resolve(),
+        );
+      });
+    });
+>>>>>>> 3bcffb30a4b6dfae3cfb0f85368f0b0c023a40de
   }
 
   private async waitForPostgres(
@@ -192,8 +233,13 @@ export class SqlRunnerService {
     if (err?.message === '__TIMEOUT__') {
       return { status: 'TIMEOUT', rows: [], executionTimeMs: 0 };
     }
-    // PostgreSQL syntax error codes: 42xxx
-    if (err?.code?.startsWith('42') || /syntax error/i.test(msg)) {
+    // PostgreSQL cancela por statement_timeout con el código 57014
+    if (err?.code === '57014') {
+      return { status: 'TIMEOUT', rows: [], executionTimeMs: 0 };
+    }
+    // Error de sintaxis: solo 42601. Otros 42xxx (permiso denegado 42501,
+    // tabla/columna inexistente 42P01/42703) son errores de ejecución.
+    if (err?.code === '42601' || /syntax error/i.test(msg)) {
       return {
         status: 'SYNTAX_ERROR',
         rows: [],
