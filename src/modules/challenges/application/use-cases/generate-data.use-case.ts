@@ -4,6 +4,9 @@ import { SeedData } from '../../domain/entities/seed-data.entity';
 import { GenerateDataDto, FieldConfig } from '../dtos/generate-data.dto';
 import { faker } from '@faker-js/faker';
 
+// Cuántas filas por INSERT — equilibrio entre rendimiento y memoria
+const BATCH_SIZE = 1_000;
+
 @Injectable()
 export class GenerateDataUseCase {
   constructor(private readonly challengeRepo: ChallengeRepository) {}
@@ -28,50 +31,63 @@ export class GenerateDataUseCase {
     return this.challengeRepo.upsertSeedData(challengeId, insertScript, true);
   }
 
-
-  //  Generador de INSERTs
+  // ------------------------------------------------------------------ //
+  //  Builder principal
+  // ------------------------------------------------------------------ //
 
   private buildInsertScript(dto: GenerateDataDto): string {
-    // Mapa de ids generados por tabla para respetar FK
-    const generatedIds: Record<string, (string | number)[]> = {};
+    // ids generados por tabla para respetar FK
+    const generatedIds: Record<string, number[]> = {};
     const scripts: string[] = [];
 
     for (const tableConfig of dto.tables) {
       const { table, rows, fields } = tableConfig;
-      const values: string[] = [];
-      const ids: (string | number)[] = [];
+      const columns = Object.keys(fields).join(', ');
+      const tableScripts: string[] = [];
 
-      for (let i = 0; i < rows; i++) {
-        const rowValues = Object.entries(fields).map(([, config]) =>
-          this.generateValue(config, generatedIds),
+      // Generamos en batches para no acumular todo en memoria
+      let currentId = 1;
+      const ids: number[] = [];
+
+      for (let batchStart = 0; batchStart < rows; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, rows);
+        const batchValues: string[] = [];
+
+        for (let i = batchStart; i < batchEnd; i++) {
+          const rowValues = Object.entries(fields).map(([, config]) =>
+            this.generateValue(config, generatedIds),
+          );
+          ids.push(currentId++);
+          batchValues.push(`(${rowValues.join(', ')})`);
+        }
+
+        tableScripts.push(
+          `INSERT INTO ${table} (${columns}) VALUES\n${batchValues.join(',\n')};`,
         );
-
-        // Si hay un campo id serial, guardamos el índice (i+1) como id generado para esa tabla
-        ids.push(i + 1);
-        values.push(`(${rowValues.join(', ')})`);
       }
 
       generatedIds[table] = ids;
-
-      const columns = Object.keys(fields).join(', ');
-      scripts.push(
-        `INSERT INTO ${table} (${columns}) VALUES\n${values.join(',\n')};`,
-      );
+      scripts.push(tableScripts.join('\n'));
     }
 
     return scripts.join('\n\n');
   }
 
+  // ------------------------------------------------------------------ //
+  //  Generador de valores por tipo
+  // ------------------------------------------------------------------ //
+
   private generateValue(
     config: FieldConfig,
-    generatedIds: Record<string, (string | number)[]>,
+    generatedIds: Record<string, number[]>,
   ): string {
-    // Porcentaje de nulos
+    // Nulos aleatorios
     if (config.nullable && Math.random() < config.nullable) {
       return 'NULL';
     }
 
     switch (config.type) {
+
       case 'foreign_key': {
         const [refTable] = config.references!.split('.');
         const ids = generatedIds[refTable];
@@ -84,30 +100,61 @@ export class GenerateDataUseCase {
         return String(randomId);
       }
 
+      case 'integer': {
+        const min = config.min ?? 0;
+        const max = config.max ?? 1_000_000;
+        return String(faker.number.int({ min, max }));
+      }
+
       case 'decimal': {
         const min = config.min ?? 0;
-        const max = config.max ?? 1000;
+        const max = config.max ?? 1_000;
         const value = faker.number.float({ min, max, fractionDigits: 2 });
         return String(value);
       }
 
       case 'date': {
         const from = config.from ? new Date(config.from) : new Date('2020-01-01');
-        const to = config.to ? new Date(config.to) : new Date();
+        const to   = config.to   ? new Date(config.to)   : new Date();
         const date = faker.date.between({ from, to });
         return `'${date.toISOString().split('T')[0]}'`;
       }
 
       case 'enum': {
         const values = config.values ?? [];
-        if (values.length === 0) throw new BadRequestException('El campo enum debe tener al menos un valor.');
+        if (values.length === 0) {
+          throw new BadRequestException('El campo enum debe tener al menos un valor.');
+        }
         const picked = values[Math.floor(Math.random() * values.length)];
-        return `'${picked}'`;
+        return `'${this.escape(picked)}'`;
       }
+
+      case 'boolean':
+        return faker.datatype.boolean() ? 'TRUE' : 'FALSE';
+
+      case 'name':
+        return `'${this.escape(faker.person.fullName())}'`;
+
+      case 'email':
+        return `'${this.escape(faker.internet.email())}'`;
+
+      case 'phone':
+        return `'${this.escape(faker.phone.number())}'`;
+
+      case 'address':
+        return `'${this.escape(faker.location.streetAddress())}'`;
+
+      case 'text':
+        return `'${this.escape(faker.lorem.sentence())}'`;
 
       case 'string':
       default:
-        return `'${faker.lorem.word()}'`;
+        return `'${this.escape(faker.lorem.word())}'`;
     }
+  }
+
+  // Escapa comillas simples para no romper el SQL
+  private escape(value: string): string {
+    return value.replace(/'/g, "''");
   }
 }
