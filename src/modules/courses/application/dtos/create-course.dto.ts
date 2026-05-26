@@ -24,7 +24,8 @@ export class CreateCourseDto {
 
   @ApiPropertyOptional({
     example: 'uuid-of-professor',
-    description: 'Required when an ADMIN creates the course on behalf of a professor',
+    description:
+      'Required when an ADMIN creates the course on behalf of a professor',
   })
   @IsUUID()
   @IsOptional()

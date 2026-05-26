@@ -102,7 +102,8 @@ ${
       const jsonResponse = JSON.parse(content);
 
       return {
-        explanation: jsonResponse.explanation || 'No se proporcionó explicación.',
+        explanation:
+          jsonResponse.explanation || 'No se proporcionó explicación.',
         suggestions: Array.isArray(jsonResponse.suggestions)
           ? jsonResponse.suggestions
           : [],
@@ -111,10 +112,13 @@ ${
           : [],
         rewrittenQuery: jsonResponse.rewrittenQuery || query,
       };
-
     } catch (error: any) {
-      this.logger.error(`Error generando recomendación con IA: ${error.message}`);
-      throw new Error('No se pudo generar la recomendación de IA debido a un error interno.');
+      this.logger.error(
+        `Error generando recomendación con IA: ${error.message}`,
+      );
+      throw new Error(
+        'No se pudo generar la recomendación de IA debido a un error interno.',
+      );
     }
   }
 }

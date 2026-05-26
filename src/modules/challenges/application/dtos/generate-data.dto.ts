@@ -71,7 +71,12 @@ export class TableGenerationConfig {
     example: {
       customer_id: { type: 'foreign_key', references: 'customers.id' },
       total: { type: 'decimal', min: 10000, max: 500000, edgeCases: true },
-      created_at: { type: 'date', from: '2026-01-01', to: '2026-12-31', edgeCases: true },
+      created_at: {
+        type: 'date',
+        from: '2026-01-01',
+        to: '2026-12-31',
+        edgeCases: true,
+      },
       status: { type: 'enum', values: ['PENDING', 'PAID', 'CANCELLED'] },
       name: { type: 'name', edgeCases: true },
       email: { type: 'email' },

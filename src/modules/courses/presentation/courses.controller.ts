@@ -55,7 +55,9 @@ export class CoursesController {
 
   @Get('me')
   @Roles(Role.STUDENT)
-  @ApiOperation({ summary: 'List courses the student is enrolled in [STUDENT]' })
+  @ApiOperation({
+    summary: 'List courses the student is enrolled in [STUDENT]',
+  })
   @ApiResponse({
     status: 200,
     description: 'Enrolled courses retrieved successfully',
@@ -132,5 +134,4 @@ export class CoursesController {
   ) {
     return this.coursesService.unenrollStudent(courseId, studentId, user.id);
   }
-
 }

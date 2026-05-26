@@ -21,9 +21,11 @@ export class SqlAnalyzerService {
 
     try {
       if (schemaDdl) {
-        const ddlAsts = this.parser.astify(schemaDdl, { database: 'postgresql' });
+        const ddlAsts = this.parser.astify(schemaDdl, {
+          database: 'postgresql',
+        });
         const ddlArray = Array.isArray(ddlAsts) ? ddlAsts : [ddlAsts];
-        
+
         for (const ast of ddlArray as any[]) {
           if (ast.type === 'create' && ast.keyword === 'table') {
             const tableName = ast.table?.[0]?.table;
@@ -88,7 +90,8 @@ export class SqlAnalyzerService {
 
             if (this.hasInSubquery(ast.where)) {
               issues.push({
-                issue: 'Uso de subconsulta con IN (considera reemplazarla por un JOIN para mejor rendimiento)',
+                issue:
+                  'Uso de subconsulta con IN (considera reemplazarla por un JOIN para mejor rendimiento)',
                 severity: 'warning',
               });
             }
@@ -100,15 +103,18 @@ export class SqlAnalyzerService {
               if (orderDef.expr?.type === 'column_ref') {
                 const table = orderDef.expr.table;
                 const column = orderDef.expr.column;
-                
+
                 let isIndexed = false;
                 if (table) {
-                  isIndexed = indexedColumns.has(`${table}.${column}`) || indexedColumns.has(column);
+                  isIndexed =
+                    indexedColumns.has(`${table}.${column}`) ||
+                    indexedColumns.has(column);
                 } else {
                   isIndexed = indexedColumns.has(column);
                 }
 
-                if (!isIndexed && indexedColumns.size > 0) { // Only warn if we actually parsed some indexes
+                if (!isIndexed && indexedColumns.size > 0) {
+                  // Only warn if we actually parsed some indexes
                   const colName = table ? `${table}.${column}` : column;
                   issues.push({
                     issue: `Uso de ORDER BY en la columna no indexada '${colName}' (puede causar ordenamiento en memoria o disk sort)`,
@@ -181,7 +187,7 @@ export class SqlAnalyzerService {
       }
       return false;
     }
-    
+
     if (typeof whereObj === 'object') {
       if (
         whereObj.type === 'binary_expr' &&
@@ -193,14 +199,14 @@ export class SqlAnalyzerService {
       ) {
         return true;
       }
-      
+
       for (const key in whereObj) {
         if (this.hasInSubquery(whereObj[key])) {
           return true;
         }
       }
     }
-    
+
     return false;
   }
 }

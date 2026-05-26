@@ -446,4 +446,3 @@ export class GenerateDataUseCase {
     return value.replace(/'/g, "''");
   }
 }
-

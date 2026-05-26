@@ -127,5 +127,4 @@ export class CoursesService {
     }
     return this.courseRepository.unenrollStudent(courseId, studentId);
   }
-
 }
