@@ -41,6 +41,13 @@ export class SqlAnalyzerService {
                 severity: 'warning',
               });
             }
+
+            if (this.hasInSubquery(ast.where)) {
+              issues.push({
+                issue: 'Uso de subconsulta con IN (considera reemplazarla por un JOIN para mejor rendimiento)',
+                severity: 'warning',
+              });
+            }
           }
         }
       }
@@ -86,6 +93,40 @@ export class SqlAnalyzerService {
       // Recorremos las propiedades anidadas recursivamente (left, right, args, etc.)
       for (const key in whereObj) {
         if (this.hasFunctionInWhere(whereObj[key])) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  private hasInSubquery(whereObj: any): boolean {
+    if (!whereObj) return false;
+
+    if (Array.isArray(whereObj)) {
+      for (const item of whereObj) {
+        if (this.hasInSubquery(item)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    if (typeof whereObj === 'object') {
+      if (
+        whereObj.type === 'binary_expr' &&
+        typeof whereObj.operator === 'string' &&
+        whereObj.operator.toUpperCase() === 'IN' &&
+        whereObj.right?.type === 'expr_list' &&
+        Array.isArray(whereObj.right.value) &&
+        whereObj.right.value.some((v: any) => v.ast?.type === 'select')
+      ) {
+        return true;
+      }
+      
+      for (const key in whereObj) {
+        if (this.hasInSubquery(whereObj[key])) {
           return true;
         }
       }
