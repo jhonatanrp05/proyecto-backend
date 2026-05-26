@@ -46,7 +46,7 @@ export class GenerateRecommendationUseCase {
     const executionTimeMs = submission.result?.executionTimeMs || 0;
 
     // 3. Ejecutar SqlAnalyzerService
-    const staticIssues = this.sqlAnalyzer.analyze(query);
+    const staticIssues = this.sqlAnalyzer.analyze(query, schemaDdl);
 
     // 4. Ejecutar AiRecommendationService
     const aiFeedback = await this.aiService.generateFeedback(
