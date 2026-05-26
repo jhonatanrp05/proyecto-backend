@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
 import { IRecommendationRepository, RECOMMENDATION_REPOSITORY } from '../../domain/repositories/recommendation.repository.interface';
-import { SqlAnalyzerService } from './sql-analyzer.service';
+import { SqlAnalyzerService } from '../services/sql-analyzer.service';
 import { AiRecommendationService } from '../../infrastructure/services/ai-recommendation.service';
 import { Recommendation } from '../../domain/entities/recommendation.entity';
 import { RecommendationResponseDto } from '../../presentation/dto/recommendation-response.dto';
@@ -15,7 +15,7 @@ export class GenerateRecommendationUseCase {
     private readonly sqlAnalyzer: SqlAnalyzerService,
     private readonly aiService: AiRecommendationService,
     private readonly prisma: PrismaService
-  ) {}
+  ) { }
 
   async execute(submissionId: string): Promise<RecommendationResponseDto> {
     // 1. Verificar si ya existe la recomendación en BD

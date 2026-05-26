@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^10.4.0",
+    "@google/generative-ai": "^0.24.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
@@ -43,7 +44,6 @@
     "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
     "node-sql-parser": "^5.4.0",
-    "openai": "^6.39.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.20.0",

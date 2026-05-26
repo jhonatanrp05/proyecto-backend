@@ -4,7 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './shared/prisma';
 
-
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { JwtAuthGuard, RolesGuard } from './shared/guards';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -39,12 +39,15 @@ import { SubmissionsModule } from './modules/submissions/submissions.module';
     ChallengesModule,
     AssessmentsModule,
     SubmissionsModule,
-    
+    RecommendationsModule,
+
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 
+
+
 })
-export class AppModule {}
+export class AppModule { }
