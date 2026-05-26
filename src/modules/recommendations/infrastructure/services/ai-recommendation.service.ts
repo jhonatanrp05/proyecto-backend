@@ -1,20 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AiRecommendationService {
-  private openai: OpenAI | null = null;
+  private readonly genAI: GoogleGenerativeAI;
   private readonly logger = new Logger(AiRecommendationService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {
+    // Usamos GEMINI_API_KEY según tu configuración en el .env
+    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
 
-  private getClient(): OpenAI {
-    if (!this.openai) {
-      const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-      this.openai = new OpenAI({ apiKey: apiKey ?? 'no-key' });
+    if (!apiKey) {
+      this.logger.error('La variable GEMINI_API_KEY no está configurada.');
     }
-    return this.openai;
+
+    this.genAI = new GoogleGenerativeAI(apiKey || '');
   }
 
   async generateFeedback(
@@ -29,27 +30,29 @@ export class AiRecommendationService {
     rewrittenQuery: string;
   }> {
     try {
-      this.logger.log('Solicitando análisis al LLM...');
-      const response = await this.getClient().chat.completions.create({
-        model: 'gpt-4o', // Puedes cambiarlo a gpt-3.5-turbo o el modelo que prefieras
-        response_format: { type: 'json_object' },
-        temperature: 0.2, // Temperatura baja para respuestas más deterministas y analíticas
-        messages: [
-          {
-            role: 'system',
-            content: `Eres un experto administrador de bases de datos PostgreSQL y tutor de SQL. 
+      this.logger.log('Solicitando análisis al LLM (Google Gemini)...');
+
+      // 1. Configuramos el modelo para que responda estrictamente en JSON
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.2, // Temperatura baja para respuestas más deterministas
+        },
+      });
+
+      // 2. Armamos el prompt detallado
+      const prompt = `Eres un experto administrador de bases de datos PostgreSQL y tutor de SQL. 
 Debes analizar la consulta SQL proporcionada por un estudiante y devolver tu análisis estrictamente en formato JSON con la siguiente estructura exacta:
 {
-  "explanation": "string (Explicación detallada de los problemas de rendimiento o estilo en la consulta, de forma pedagógica)",
-  "suggestions": ["string" (Lista de sugerencias paso a paso para mejorar la consulta y las buenas prácticas)],
-  "indexSuggestions": ["string" (Lista de sentencias DDL completas para crear índices recomendados, ej: 'CREATE INDEX idx_name ON table(col);'. Si no hay sugerencias, devuelve un arreglo vacío)],
-  "rewrittenQuery": "string (La consulta SQL reescrita y optimizada de forma correcta)"
+  "explanation": "string con la explicacion detallada",
+  "suggestions": ["array de strings con sugerencias de buenas practicas"],
+  "indexSuggestions": ["array de strings con sentencias DDL CREATE INDEX sugeridas"],
+  "rewrittenQuery": "string con el SQL optimizado"
 }
-Asegúrate de que la salida sea un objeto JSON válido y no contenga ningún texto adicional fuera de él.`,
-          },
-          {
-            role: 'user',
-            content: `Analiza esta consulta SQL:
+Asegúrate de que la salida sea un objeto JSON válido y no contenga ningún texto adicional fuera de él.
+
+Analiza esta consulta SQL:
 
 Esquema de la base de datos (DDL):
 ${schema}
@@ -61,21 +64,21 @@ Tiempo de ejecución actual: ${executionTime} ms
 
 Problemas detectados por análisis estático (AST):
 ${JSON.stringify(staticIssues, null, 2)}
-`,
-          },
-        ],
-      });
+`;
 
-      const content = response.choices[0].message.content;
+      // 3. Ejecutamos la petición a la IA
+      const result = await model.generateContent(prompt);
+      const content = result.response.text();
+
       if (!content) {
-        throw new Error('La respuesta del LLM está vacía');
+        throw new Error('La respuesta de Gemini está vacía');
       }
 
+      // 4. Parseamos el JSON devuelto
       const jsonResponse = JSON.parse(content);
 
       return {
-        explanation:
-          jsonResponse.explanation || 'No se proporcionó explicación.',
+        explanation: jsonResponse.explanation || 'No se proporcionó explicación.',
         suggestions: Array.isArray(jsonResponse.suggestions)
           ? jsonResponse.suggestions
           : [],
@@ -84,13 +87,10 @@ ${JSON.stringify(staticIssues, null, 2)}
           : [],
         rewrittenQuery: jsonResponse.rewrittenQuery || query,
       };
+
     } catch (error: any) {
-      this.logger.error(
-        `Error generando recomendación con IA: ${error.message}`,
-      );
-      throw new Error(
-        'No se pudo generar la recomendación de IA debido a un error interno.',
-      );
+      this.logger.error(`Error generando recomendación con IA: ${error.message}`);
+      throw new Error('No se pudo generar la recomendación de IA debido a un error interno.');
     }
   }
 }

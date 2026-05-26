@@ -18,7 +18,7 @@ export class GenerateRecommendationUseCase {
     private readonly sqlAnalyzer: SqlAnalyzerService,
     private readonly aiService: AiRecommendationService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async execute(submissionId: string): Promise<RecommendationResponseDto> {
     // 1. Verificar si ya existe la recomendación en BD
@@ -52,7 +52,7 @@ export class GenerateRecommendationUseCase {
     const executionTimeMs = submission.result?.executionTimeMs || 0;
 
     // 3. Ejecutar SqlAnalyzerService
-    const staticIssues = this.sqlAnalyzer.analyze(query);
+    const staticIssues = this.sqlAnalyzer.analyze(query, schemaDdl);
 
     // 4. Ejecutar AiRecommendationService
     const aiFeedback = await this.aiService.generateFeedback(

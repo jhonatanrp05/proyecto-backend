@@ -47,4 +47,4 @@ import { RecommendationsModule } from './modules/recommendations/recommendations
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
-export class AppModule {}
+export class AppModule { }

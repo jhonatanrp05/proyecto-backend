@@ -15,8 +15,42 @@ export class SqlAnalyzerService {
     this.parser = new Parser();
   }
 
-  analyze(query: string): SqlIssue[] {
+  analyze(query: string, schemaDdl: string = ''): SqlIssue[] {
     const issues: SqlIssue[] = [];
+    const indexedColumns = new Set<string>();
+
+    try {
+      if (schemaDdl) {
+        const ddlAsts = this.parser.astify(schemaDdl, { database: 'postgresql' });
+        const ddlArray = Array.isArray(ddlAsts) ? ddlAsts : [ddlAsts];
+        
+        for (const ast of ddlArray as any[]) {
+          if (ast.type === 'create' && ast.keyword === 'table') {
+            const tableName = ast.table?.[0]?.table;
+            ast.create_definitions?.forEach((def: any) => {
+              if (def.primary_key || def.unique) {
+                const colName = def.column?.column?.expr?.value;
+                if (colName) {
+                  indexedColumns.add(colName);
+                  if (tableName) indexedColumns.add(`${tableName}.${colName}`);
+                }
+              }
+            });
+          } else if (ast.type === 'create' && ast.keyword === 'index') {
+            const tableName = ast.table?.table;
+            ast.index_columns?.forEach((col: any) => {
+              const colName = col.column?.expr?.value;
+              if (colName) {
+                indexedColumns.add(colName);
+                if (tableName) indexedColumns.add(`${tableName}.${colName}`);
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`No se pudo parsear el DDL para extraer índices: ${e}`);
+    }
 
     try {
       // Configuramos para base de datos PostgreSQL si es posible, o usamos el generic
@@ -24,6 +58,15 @@ export class SqlAnalyzerService {
       const asts = Array.isArray(astOrAsts) ? astOrAsts : [astOrAsts];
 
       for (const ast of asts as any[]) {
+        if (['select', 'update', 'delete'].includes(ast.type)) {
+          if (!ast.where) {
+            issues.push({
+              issue: `Ausencia de cláusula WHERE en una consulta ${ast.type.toUpperCase()} (puede causar full table scan o modificar registros masivamente)`,
+              severity: 'warning',
+            });
+          }
+        }
+
         if (ast.type === 'select') {
           // Check for SELECT *
           if (this.hasSelectStar(ast)) {
@@ -42,6 +85,38 @@ export class SqlAnalyzerService {
                 severity: 'warning',
               });
             }
+
+            if (this.hasInSubquery(ast.where)) {
+              issues.push({
+                issue: 'Uso de subconsulta con IN (considera reemplazarla por un JOIN para mejor rendimiento)',
+                severity: 'warning',
+              });
+            }
+          }
+
+          // Check for ORDER BY on non-indexed columns
+          if (ast.orderby) {
+            ast.orderby.forEach((orderDef: any) => {
+              if (orderDef.expr?.type === 'column_ref') {
+                const table = orderDef.expr.table;
+                const column = orderDef.expr.column;
+                
+                let isIndexed = false;
+                if (table) {
+                  isIndexed = indexedColumns.has(`${table}.${column}`) || indexedColumns.has(column);
+                } else {
+                  isIndexed = indexedColumns.has(column);
+                }
+
+                if (!isIndexed && indexedColumns.size > 0) { // Only warn if we actually parsed some indexes
+                  const colName = table ? `${table}.${column}` : column;
+                  issues.push({
+                    issue: `Uso de ORDER BY en la columna no indexada '${colName}' (puede causar ordenamiento en memoria o disk sort)`,
+                    severity: 'warning',
+                  });
+                }
+              }
+            });
           }
         }
       }
@@ -92,6 +167,40 @@ export class SqlAnalyzerService {
       }
     }
 
+    return false;
+  }
+
+  private hasInSubquery(whereObj: any): boolean {
+    if (!whereObj) return false;
+
+    if (Array.isArray(whereObj)) {
+      for (const item of whereObj) {
+        if (this.hasInSubquery(item)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    if (typeof whereObj === 'object') {
+      if (
+        whereObj.type === 'binary_expr' &&
+        typeof whereObj.operator === 'string' &&
+        whereObj.operator.toUpperCase() === 'IN' &&
+        whereObj.right?.type === 'expr_list' &&
+        Array.isArray(whereObj.right.value) &&
+        whereObj.right.value.some((v: any) => v.ast?.type === 'select')
+      ) {
+        return true;
+      }
+      
+      for (const key in whereObj) {
+        if (this.hasInSubquery(whereObj[key])) {
+          return true;
+        }
+      }
+    }
+    
     return false;
   }
 }
