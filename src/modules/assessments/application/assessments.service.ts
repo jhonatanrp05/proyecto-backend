@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   NotFoundException,
@@ -8,7 +9,7 @@ import { AssessmentsRepository } from '../infrastructure/assessments.repository'
 
 @Injectable()
 export class AssessmentsService {
-  constructor(private readonly assessmentsRepo: AssessmentsRepository) {}
+  constructor(private readonly assessmentsRepo: AssessmentsRepository) { }
 
   async create(dto: {
     name: string;

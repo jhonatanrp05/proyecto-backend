@@ -24,7 +24,7 @@ export interface UpdateAssessmentData {
 
 @Injectable()
 export class AssessmentsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(data: CreateAssessmentData) {
     return this.prisma.assessment.create({
