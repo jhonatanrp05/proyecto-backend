@@ -27,6 +27,17 @@ export class SubmissionRepository implements ISubmissionRepository {
       where: { id },
       include: {
         result: true,
+        challenge: {
+          select: {
+            id: true,
+            courseId: true,
+            course: {
+              select: {
+                professorId: true,
+              },
+            },
+          },
+        },
       },
     });
   }

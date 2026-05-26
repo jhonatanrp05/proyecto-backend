@@ -7,10 +7,7 @@ import {
 } from './application/submissions.service';
 import { SubmissionsController } from './presentation/submissions.controller';
 import { SubmissionRepository } from './infrastructure/submission.repository';
-import { SubmissionsProcessor } from './infrastructure/submissions.processor';
-import { SqlRunnerService } from './infrastructure/sql-runner.service';
 import { SUBMISSION_REPOSITORY } from './domain/submission.repository.interface';
-import { SqlAnalyzerService } from '../recommendations/application/sql-analyzer.service';
 
 @Module({
   imports: [
@@ -23,9 +20,6 @@ import { SqlAnalyzerService } from '../recommendations/application/sql-analyzer.
   controllers: [SubmissionsController],
   providers: [
     SubmissionsService,
-    SubmissionsProcessor,
-    SqlRunnerService,
-    SqlAnalyzerService,
     { provide: SUBMISSION_REPOSITORY, useClass: SubmissionRepository },
   ],
   exports: [SubmissionsService],

@@ -42,7 +42,10 @@ export class SubmissionsController {
     description:
       'Permite consultar el estado actual de un submission y su resultado si ya fue evaluado.',
   })
-  findOne(@Param('id') id: string) {
-    return this.submissionsService.findById(id);
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.submissionsService.findById(id, user);
   }
 }
