@@ -16,7 +16,7 @@ Diseñar e implementar el MVP de una plataforma backend para evaluar  automátic
 
 **Modalidad:** trabajo en equipos de máximo 4 estudiantes. **Duración:** 5 semanas. 
 
-**Entregas:** 2 entregas parciales. 
+**Entregas:** 2 entregas parciales.
 
 **Arquitectura requerida:** Clean Architecture. 
 

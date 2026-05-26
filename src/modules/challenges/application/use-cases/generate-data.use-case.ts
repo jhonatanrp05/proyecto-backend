@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { ChallengeRepository } from '../../domain/repositories/challenge.repository';
 import { SeedData } from '../../domain/entities/seed-data.entity';
-import { GenerateDataDto, FieldConfig } from '../dtos/generate-data.dto';
+import {
+  GenerateDataDto,
+  FieldConfig,
+  EdgeCaseRow,
+} from '../dtos/generate-data.dto';
 import { faker } from '@faker-js/faker';
 
 // Cuántas filas por INSERT — equilibrio entre rendimiento y memoria
@@ -56,13 +60,38 @@ export class GenerateDataUseCase {
     const scripts: string[] = [];
 
     for (const tableConfig of dto.tables) {
-      const { table, rows, fields } = tableConfig;
+      const { table, rows, fields, edgeCases: explicitEdgeCases } = tableConfig;
       const columns = Object.keys(fields).join(', ');
       const tableScripts: string[] = [];
 
-      // Generamos en batches para no acumular todo en memoria
-      let currentId = 1;
+      // ---- 1. Filas de casos borde automáticos (por campo con edgeCases: true)
+      const autoEdgeRows = this.buildAutoEdgeCaseRows(fields, generatedIds);
+
+      // ---- 2. Filas de casos borde explícitos (definidos por el profesor)
+      const explicitRows = this.buildExplicitEdgeCaseRows(
+        columns.split(', '),
+        explicitEdgeCases ?? [],
+      );
+
+      const allEdgeRows = [...autoEdgeRows, ...explicitRows];
+
+      if (allEdgeRows.length > 0) {
+        const edgeValues = allEdgeRows.map((r) => `(${r.values.join(', ')})`);
+        tableScripts.push(
+          `-- Casos borde (${allEdgeRows.length} filas)\n` +
+            `-- ${allEdgeRows.map((r) => r.description).join(' | ')}\n` +
+            `INSERT INTO ${table} (${columns}) VALUES\n${edgeValues.join(',\n')};`,
+        );
+      }
+
+      // ---- 3. Filas aleatorias normales
+      let currentId = 1 + allEdgeRows.length; // offset para no colisionar IDs
       const ids: number[] = [];
+
+      // Registrar IDs de los edge cases
+      for (let i = 1; i <= allEdgeRows.length; i++) {
+        ids.push(i);
+      }
 
       for (let batchStart = 0; batchStart < rows; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, rows);
@@ -89,7 +118,154 @@ export class GenerateDataUseCase {
   }
 
   // ------------------------------------------------------------------ //
-  //  Generador de valores por tipo
+  //  Generador de casos borde automáticos
+  // ------------------------------------------------------------------ //
+
+  private buildAutoEdgeCaseRows(
+    fields: Record<string, FieldConfig>,
+    generatedIds: Record<string, number[]>,
+  ): { description: string; values: string[] }[] {
+    const edgeRows: { description: string; values: string[] }[] = [];
+    const fieldEntries = Object.entries(fields);
+
+    // Para cada campo que tenga edgeCases: true, generar filas especiales
+    for (const [fieldName, config] of fieldEntries) {
+      if (!config.edgeCases) continue;
+
+      const edgeValues = this.getEdgeValuesForField(fieldName, config);
+
+      for (const edge of edgeValues) {
+        // Construir una fila completa: el campo borde tiene el valor especial,
+        // los demás campos reciben valores normales aleatorios
+        const rowValues = fieldEntries.map(([name, cfg]) => {
+          if (name === fieldName) return edge.value;
+          return this.generateValue(cfg, generatedIds);
+        });
+
+        edgeRows.push({
+          description: `${fieldName}: ${edge.description}`,
+          values: rowValues,
+        });
+      }
+    }
+
+    return edgeRows;
+  }
+
+  /**
+   * Retorna los valores borde para un campo según su tipo.
+   */
+  private getEdgeValuesForField(
+    fieldName: string,
+    config: FieldConfig,
+  ): { value: string; description: string }[] {
+    const edges: { value: string; description: string }[] = [];
+
+    switch (config.type) {
+      case 'integer': {
+        const min = config.min ?? 0;
+        const max = config.max ?? 1_000_000;
+        edges.push({ value: String(min), description: `valor mínimo (${min})` });
+        edges.push({ value: String(max), description: `valor máximo (${max})` });
+        edges.push({ value: '0', description: 'cero' });
+        if (min > 0) {
+          edges.push({
+            value: String(min - 1),
+            description: `justo debajo del mínimo (${min - 1})`,
+          });
+        }
+        break;
+      }
+
+      case 'decimal': {
+        const min = config.min ?? 0;
+        const max = config.max ?? 1_000;
+        edges.push({ value: String(min), description: `valor mínimo (${min})` });
+        edges.push({ value: String(max), description: `valor máximo (${max})` });
+        edges.push({ value: '0.00', description: 'cero' });
+        edges.push({
+          value: String(Number((min + 0.01).toFixed(2))),
+          description: `mínimo + 0.01`,
+        });
+        break;
+      }
+
+      case 'date': {
+        const from = config.from ?? '2020-01-01';
+        const to = config.to ?? new Date().toISOString().split('T')[0];
+        edges.push({
+          value: `'${from}'`,
+          description: `fecha inicio del rango`,
+        });
+        edges.push({
+          value: `'${to}'`,
+          description: `fecha fin del rango`,
+        });
+        break;
+      }
+
+      case 'enum': {
+        // Incluir cada valor del enum para asegurar cobertura completa
+        const values = config.values ?? [];
+        for (const v of values) {
+          edges.push({
+            value: `'${this.escape(v)}'`,
+            description: `enum valor '${v}'`,
+          });
+        }
+        break;
+      }
+
+      case 'name':
+      case 'string':
+      case 'text':
+      case 'address': {
+        edges.push({ value: "''", description: 'string vacío' });
+        edges.push({
+          value: `'${this.escape('A'.repeat(100))}'`,
+          description: 'string muy largo (100 chars)',
+        });
+        break;
+      }
+
+      case 'boolean': {
+        edges.push({ value: 'TRUE', description: 'true' });
+        edges.push({ value: 'FALSE', description: 'false' });
+        break;
+      }
+    }
+
+    // Agregar NULL si el campo es nullable
+    if (config.nullable && config.nullable > 0) {
+      edges.push({ value: 'NULL', description: 'valor nulo' });
+    }
+
+    return edges;
+  }
+
+  // ------------------------------------------------------------------ //
+  //  Casos borde explícitos del profesor
+  // ------------------------------------------------------------------ //
+
+  private buildExplicitEdgeCaseRows(
+    columnNames: string[],
+    edgeCases: EdgeCaseRow[],
+  ): { description: string; values: string[] }[] {
+    return edgeCases.map((ec) => {
+      const values = columnNames.map((col) => {
+        const val = ec.values[col];
+        if (val === null || val === undefined) return 'NULL';
+        if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+        if (typeof val === 'number') return String(val);
+        return `'${this.escape(String(val))}'`;
+      });
+
+      return { description: ec.description, values };
+    });
+  }
+
+  // ------------------------------------------------------------------ //
+  //  Generador de valores por tipo (aleatorio normal)
   // ------------------------------------------------------------------ //
 
   private generateValue(
@@ -176,3 +352,4 @@ export class GenerateDataUseCase {
     return value.replace(/'/g, "''");
   }
 }
+
