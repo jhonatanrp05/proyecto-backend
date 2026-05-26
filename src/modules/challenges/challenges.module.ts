@@ -16,7 +16,6 @@ import {
   UploadSeedDataUseCase,
   SetExpectedResultUseCase,
 } from './application/use-cases/challenge-content.use-case';
-import { GetChallengeStatsUseCase } from './application/use-cases/get-challenge-stats.use-case';
 import { GenerateDataUseCase } from './application/use-cases/generate-data.use-case';
 
 // Repository
@@ -44,7 +43,6 @@ import { PrismaModule } from '../../shared/prisma/prisma.module';
     UploadSeedDataUseCase,
     SetExpectedResultUseCase,
     GenerateDataUseCase,
-    GetChallengeStatsUseCase,
   ],
 
   exports: [ChallengeRepository],

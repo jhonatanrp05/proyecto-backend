@@ -16,7 +16,7 @@ import {
   ApiTags,
   ApiResponse,
 } from '@nestjs/swagger';
-import { Roles, CurrentUser } from '../../../shared/decorators';
+import { Roles } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
 import { RolesGuard } from '../../../shared/guards';
 import { UsersService } from '../application/users.service';
@@ -86,17 +86,4 @@ export class UsersController {
     return this.usersService.delete(id);
   }
 
-  @Get(':id/report')
-  @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get student report [PROFESSOR, STUDENT]',
-    description: 'Returns detailed performance report for a student',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Student report retrieved successfully',
-  })
-  getStudentReport(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.usersService.getReport(id, user.id, user.role);
-  }
 }

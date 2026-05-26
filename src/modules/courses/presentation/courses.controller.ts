@@ -133,31 +133,4 @@ export class CoursesController {
     return this.coursesService.unenrollStudent(courseId, studentId, user.id);
   }
 
-  @Get(':id/report')
-  @Roles(Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Get course report [PROFESSOR]',
-    description: 'Returns analytics and performance data for a course',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Course report retrieved successfully',
-  })
-  getCourseReport(@Param('id') id: string) {
-    return this.coursesService.getCourseReport(id);
-  }
-
-  @Get(':id/leaderboard')
-  @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get course leaderboard [PROFESSOR, STUDENT]',
-    description: 'Returns ranking of students based on course performance',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Leaderboard retrieved successfully',
-  })
-  getLeaderboard(@Param('id') id: string) {
-    return this.coursesService.getLeaderboard(id);
-  }
 }

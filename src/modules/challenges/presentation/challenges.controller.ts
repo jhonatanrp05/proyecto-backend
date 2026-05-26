@@ -29,7 +29,6 @@ import {
   SetExpectedResultUseCase,
 } from '../application/use-cases/challenge-content.use-case';
 import { GenerateDataUseCase } from '../application/use-cases/generate-data.use-case';
-import { GetChallengeStatsUseCase } from '../application/use-cases/get-challenge-stats.use-case';
 
 import { CreateChallengeDto } from '../application/dtos/create-challenge.dto';
 import { UpdateChallengeDto } from '../application/dtos/update-challenge.dto';
@@ -60,7 +59,6 @@ export class ChallengesController {
     private readonly uploadSeedData: UploadSeedDataUseCase,
     private readonly setExpectedResultUseCase: SetExpectedResultUseCase,
     private readonly generateData: GenerateDataUseCase,
-    private readonly getStats: GetChallengeStatsUseCase,
   ) {}
 
   //  POST /challenges
@@ -186,18 +184,5 @@ export class ChallengesController {
     @Request() req: any,
   ) {
     return this.generateData.execute(id, dto, req.user.id);
-  }
-  @Get(':id/stats')
-  @Roles(Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Get challenge statistics [PROFESSOR]',
-    description: 'Returns analytics and statistics for a challenge',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Challenge statistics retrieved successfully',
-  })
-  getChallengeStats(@Param('id') id: string) {
-    return this.getStats.execute(id);
   }
 }
