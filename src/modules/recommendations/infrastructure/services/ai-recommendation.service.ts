@@ -22,7 +22,8 @@ export class AiRecommendationService {
     query: string,
     schema: string,
     executionTime: number,
-    staticIssues: any[],
+    evaluationStatus: string,
+    executionPlan?: string,
   ): Promise<{
     explanation: string;
     suggestions: string[];
@@ -32,27 +33,48 @@ export class AiRecommendationService {
     try {
       this.logger.log('Solicitando análisis al LLM (Google Gemini)...');
 
-      // 1. Configuramos el modelo para que responda estrictamente en JSON
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0.2, // Temperatura baja para respuestas más deterministas
+          temperature: 0.2,
         },
       });
 
-      // 2. Armamos el prompt detallado
-      const prompt = `Eres un experto administrador de bases de datos PostgreSQL y tutor de SQL. 
-Debes analizar la consulta SQL proporcionada por un estudiante y devolver tu análisis estrictamente en formato JSON con la siguiente estructura exacta:
-{
-  "explanation": "string con la explicacion detallada",
-  "suggestions": ["array de strings con sugerencias de buenas practicas"],
-  "indexSuggestions": ["array de strings con sentencias DDL CREATE INDEX sugeridas"],
-  "rewrittenQuery": "string con el SQL optimizado"
-}
-Asegúrate de que la salida sea un objeto JSON válido y no contenga ningún texto adicional fuera de él.
+      // Prompt alineado al Módulo 5 del enunciado (líneas 504–534).
+      // Inputs requeridos por la Opción 2 (líneas 614–624):
+      // consulta, esquema, tiempo de ejecución y resultado de evaluación.
+      const prompt = `Eres un experto administrador de bases de datos PostgreSQL y tutor de SQL. Analizas la consulta SQL de un estudiante y produces retroalimentación pedagógica accionable.
 
-Analiza esta consulta SQL:
+DEBES analizar los siguientes ejes:
+- La consulta SQL completa.
+- El esquema de tablas (DDL).
+- Los campos usados en filtros (WHERE).
+- Los campos usados en joins (JOIN ... ON).
+- Los campos usados en agrupaciones (GROUP BY).
+- Los campos usados en ordenamientos (ORDER BY).
+- El tiempo de ejecución medido.
+- El resultado de la evaluación automática (si la consulta produjo el resultado esperado o no).
+- Posibles problemas de rendimiento.
+- Posibles oportunidades de mejora.
+
+DEBES generar:
+- Una explicación en lenguaje natural (qué hace la consulta, qué problemas tiene, qué se puede mejorar y cuál es el impacto esperado de cada mejora).
+- Recomendaciones de optimización específicas y accionables.
+- Sugerencia de índices, expresadas como sentencias DDL CREATE INDEX completas y válidas.
+- Advertencias sobre malas prácticas detectadas (SELECT *, ausencia de WHERE, funciones sobre columnas indexadas en WHERE, subconsultas IN que pueden ser JOIN, etc.).
+- Propuesta de reescritura de la consulta cuando aplique. Si no hay una mejora clara o la consulta ya está bien escrita, devuelve la misma consulta sin cambios.
+- Explicación del posible impacto de cada mejora propuesta (incluida en la explicación o en cada sugerencia).
+
+Responde estrictamente en JSON con esta estructura exacta y sin texto fuera del objeto:
+{
+  "explanation": "string con explicación en lenguaje natural, incluyendo el impacto esperado de las mejoras",
+  "suggestions": ["array de strings con recomendaciones de optimización y advertencias sobre malas prácticas"],
+  "indexSuggestions": ["array de strings con sentencias DDL CREATE INDEX completas"],
+  "rewrittenQuery": "string con la consulta optimizada (o la consulta original si no hay mejora aplicable)"
+}
+
+--- ENTRADA ---
 
 Esquema de la base de datos (DDL):
 ${schema}
@@ -60,13 +82,15 @@ ${schema}
 Consulta enviada por el estudiante:
 ${query}
 
-Tiempo de ejecución actual: ${executionTime} ms
+Tiempo de ejecución medido: ${executionTime} ms
 
-Problemas detectados por análisis estático (AST):
-${JSON.stringify(staticIssues, null, 2)}
-`;
+Resultado de la evaluación automática: ${evaluationStatus}
+${
+  executionPlan
+    ? `\nPlan de ejecución (EXPLAIN ANALYZE):\n${executionPlan}\n`
+    : ''
+}`;
 
-      // 3. Ejecutamos la petición a la IA
       const result = await model.generateContent(prompt);
       const content = result.response.text();
 

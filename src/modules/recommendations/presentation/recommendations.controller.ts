@@ -20,9 +20,9 @@ export class RecommendationsController {
   ) {}
 
   @Get(':id/recommendations')
-  @Roles(Role.STUDENT, Role.PROFESSOR)
+  @Roles(Role.STUDENT, Role.PROFESSOR, Role.ADMIN)
   @ApiOperation({
-    summary: 'Get SQL optimization recommendations [STUDENT, PROFESSOR]',
+    summary: 'Get SQL optimization recommendations [STUDENT, PROFESSOR, ADMIN]',
     description:
       'Returns optimization recommendations generated after evaluating a submission',
   })

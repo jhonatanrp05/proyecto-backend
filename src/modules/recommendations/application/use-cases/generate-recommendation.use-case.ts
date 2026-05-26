@@ -9,22 +9,19 @@ import {
   IRecommendationRepository,
   RECOMMENDATION_REPOSITORY,
 } from '../../domain/repositories/recommendation.repository.interface';
-import { SqlAnalyzerService } from '../services/sql-analyzer.service';
-import { AiRecommendationService } from '../../infrastructure/services/ai-recommendation.service';
 import { Recommendation } from '../../domain/entities/recommendation.entity';
 import { RecommendationResponseDto } from '../../presentation/dto/recommendation-response.dto';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class GenerateRecommendationUseCase {
   constructor(
     @Inject(RECOMMENDATION_REPOSITORY)
     private readonly recommendationRepository: IRecommendationRepository,
-    private readonly sqlAnalyzer: SqlAnalyzerService,
-    private readonly aiService: AiRecommendationService,
     private readonly prisma: PrismaService,
   ) {}
 
+  // El productor de recomendaciones es el worker (Opción 2 del enunciado: IA).
+  // Este use case solo expone la recomendación ya persistida.
   async execute(
     submissionId: string,
     requester?: { id: string; role: string },
@@ -33,16 +30,10 @@ export class GenerateRecommendationUseCase {
       where: { id: submissionId },
       include: {
         challenge: {
-          include: {
-            schema: true,
-            course: {
-              select: {
-                professorId: true,
-              },
-            },
+          select: {
+            course: { select: { professorId: true } },
           },
         },
-        result: true,
       },
     });
 
@@ -58,40 +49,12 @@ export class GenerateRecommendationUseCase {
 
     const existing =
       await this.recommendationRepository.findBySubmissionId(submissionId);
-    if (existing) {
-      return this.mapToDto(existing);
+    if (!existing) {
+      throw new NotFoundException(
+        'La recomendación aún no está disponible. Espera a que termine la evaluación del submission.',
+      );
     }
-
-    const query = submission.query;
-    const schemaDdl = submission.challenge.schema?.ddlScript || '';
-    const executionTimeMs = submission.result?.executionTimeMs || 0;
-
-    // 3. Ejecutar SqlAnalyzerService
-    const staticIssues = this.sqlAnalyzer.analyze(query, schemaDdl);
-
-    // 4. Ejecutar AiRecommendationService
-    const aiFeedback = await this.aiService.generateFeedback(
-      query,
-      schemaDdl,
-      executionTimeMs,
-      staticIssues,
-    );
-
-    // 5. Guardar en BD
-    const newRecommendation = new Recommendation(
-      randomUUID(),
-      submissionId,
-      aiFeedback.explanation,
-      aiFeedback.suggestions,
-      aiFeedback.indexSuggestions,
-      aiFeedback.rewrittenQuery,
-      new Date(),
-    );
-
-    const saved = await this.recommendationRepository.save(newRecommendation);
-
-    // 6. Retornar el resultado mapeado
-    return this.mapToDto(saved);
+    return this.mapToDto(existing);
   }
 
   private assertAccess(

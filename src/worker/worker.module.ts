@@ -6,6 +6,7 @@ import { SUBMISSIONS_QUEUE } from '../modules/submissions/application/submission
 import { SubmissionsProcessor } from '../modules/submissions/infrastructure/submissions.processor';
 import { SqlRunnerService } from '../modules/submissions/infrastructure/sql-runner.service';
 import { SqlAnalyzerService } from '../modules/recommendations/application/sql-analyzer.service';
+import { AiRecommendationService } from '../modules/recommendations/infrastructure/services/ai-recommendation.service';
 
 @Module({
   imports: [
@@ -30,6 +31,11 @@ import { SqlAnalyzerService } from '../modules/recommendations/application/sql-a
       name: SUBMISSIONS_QUEUE,
     }),
   ],
-  providers: [SubmissionsProcessor, SqlRunnerService, SqlAnalyzerService],
+  providers: [
+    SubmissionsProcessor,
+    SqlRunnerService,
+    SqlAnalyzerService,
+    AiRecommendationService,
+  ],
 })
 export class WorkerModule {}
