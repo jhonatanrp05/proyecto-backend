@@ -41,4 +41,24 @@ export class SubmissionRepository implements ISubmissionRepository {
       },
     });
   }
+
+  async findMany(filter: {
+    studentId?: string;
+    challengeId?: string;
+    professorId?: string;
+  }): Promise<any[]> {
+    return this.prisma.submission.findMany({
+      where: {
+        ...(filter.studentId ? { studentId: filter.studentId } : {}),
+        ...(filter.challengeId ? { challengeId: filter.challengeId } : {}),
+        ...(filter.professorId
+          ? { challenge: { course: { professorId: filter.professorId } } }
+          : {}),
+      },
+      include: {
+        result: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

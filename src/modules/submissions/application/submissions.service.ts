@@ -89,6 +89,26 @@ export class SubmissionsService {
     return submission;
   }
 
+  async findAll(
+    requester: { id: string; role: string },
+    challengeId?: string,
+  ): Promise<any[]> {
+    if (requester.role === 'STUDENT') {
+      return this.submissionRepository.findMany({
+        studentId: requester.id,
+        challengeId,
+      });
+    }
+    if (requester.role === 'PROFESSOR') {
+      return this.submissionRepository.findMany({
+        professorId: requester.id,
+        challengeId,
+      });
+    }
+    // ADMIN
+    return this.submissionRepository.findMany({ challengeId });
+  }
+
   async findById(
     id: string,
     requester: { id: string; role: string },

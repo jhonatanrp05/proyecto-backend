@@ -7,6 +7,12 @@ export interface ISubmissionRepository {
   }): Promise<any>;
 
   findById(id: string): Promise<any | null>;
+
+  findMany(filter: {
+    studentId?: string;
+    challengeId?: string;
+    professorId?: string;
+  }): Promise<any[]>;
 }
 
 export const SUBMISSION_REPOSITORY = Symbol('SUBMISSION_REPOSITORY');

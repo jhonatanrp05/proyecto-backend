@@ -6,8 +6,14 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants/roles.enum';
 import { CurrentUser } from '../../../shared/decorators';
@@ -33,6 +39,25 @@ export class SubmissionsController {
     @CurrentUser() user: { id: string },
   ) {
     return this.submissionsService.create(dto, user.id);
+  }
+
+  @Get()
+  @Roles(Role.STUDENT, Role.PROFESSOR, Role.ADMIN)
+  @ApiOperation({
+    summary: 'Listar submissions [STUDENT, PROFESSOR, ADMIN]',
+    description:
+      'STUDENT solo ve los suyos. PROFESSOR ve los de retos de sus cursos. ADMIN ve todos. Acepta filtro opcional por challengeId.',
+  })
+  @ApiQuery({
+    name: 'challengeId',
+    required: false,
+    description: 'Filtra por reto',
+  })
+  findAll(
+    @CurrentUser() user: { id: string; role: string },
+    @Query('challengeId') challengeId?: string,
+  ) {
+    return this.submissionsService.findAll(user, challengeId);
   }
 
   @Get(':id')

@@ -32,7 +32,12 @@ export class SqlRunnerService {
 
   async run(input: SqlRunnerInput): Promise<SqlRunnerOutput> {
     const containerName = `sql-eval-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const hostPort = await this.getFreePort();
+    // Si RUNNER_NETWORK está definida (caso docker-compose), el worker y el runner
+    // se hablan por la red interna de Docker y no se expone puerto al host. Si no,
+    // se mantiene el comportamiento de port-binding al host (worker corriendo nativo).
+    const runnerNetwork = process.env.RUNNER_NETWORK;
+    const useDockerNetwork = Boolean(runnerNetwork);
+    const hostPort = useDockerNetwork ? 0 : await this.getFreePort();
     let container: Dockerode.Container | null = null;
 
     try {
@@ -48,19 +53,28 @@ export class SqlRunnerService {
           AutoRemove: true,
           Memory: 512 * 1024 * 1024, // 512 MB
           NanoCpus: 500_000_000, // 0.5 CPU
-          PortBindings: {
-            '5432/tcp': [{ HostPort: String(hostPort) }],
-          },
+          ...(useDockerNetwork
+            ? { NetworkMode: runnerNetwork }
+            : {
+                PortBindings: {
+                  '5432/tcp': [{ HostPort: String(hostPort) }],
+                },
+              }),
         },
         ExposedPorts: { '5432/tcp': {} },
       });
 
       await container.start();
       this.logger.debug(
-        `Container ${containerName} started on port ${hostPort}`,
+        useDockerNetwork
+          ? `Container ${containerName} started on network ${runnerNetwork}`
+          : `Container ${containerName} started on port ${hostPort}`,
       );
 
-      const client = await this.waitForPostgres(hostPort);
+      const client = await this.waitForPostgres(
+        useDockerNetwork ? containerName : 'localhost',
+        useDockerNetwork ? 5432 : hostPort,
+      );
 
       try {
         await client.query(input.ddlScript);
@@ -109,13 +123,14 @@ export class SqlRunnerService {
   }
 
   private async waitForPostgres(
+    host: string,
     port: number,
     timeoutMs = 30_000,
   ): Promise<Client> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       const client = new Client({
-        host: 'localhost',
+        host,
         port,
         user: this.DB_USER,
         password: this.DB_PASSWORD,

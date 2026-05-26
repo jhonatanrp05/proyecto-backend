@@ -121,17 +121,37 @@ export class SubmissionsProcessor extends WorkerHost {
         },
       ];
 
-      const score = this.calculateScore(
+      // Análisis estático: alimenta tanto el score (criterio "Uso adecuado de SQL")
+      // como la recomendación que se persiste a continuación.
+      const analysis = this.sqlAnalyzer.analyze({
+        query: submission.query,
+        ddlScript: challenge.schema.ddlScript,
+        executionTimeMs: runnerOutput.executionTimeMs,
+        timeLimitMs: challenge.timeLimit,
+      });
+
+      // Submission previa del mismo estudiante/reto, para evaluar el criterio
+      // "Recomendaciones atendidas o mejora posterior" (10% de la rúbrica).
+      const previousSuggestionsCount = await this.findPreviousSuggestionsCount(
+        submission.studentId,
+        submission.challengeId,
+        submission.id,
+      );
+
+      const score = this.calculateScore({
+        correct: resultCorrect,
+        executionTimeMs: runnerOutput.executionTimeMs,
+        timeLimitMs: challenge.timeLimit,
+        query: submission.query,
+        currentSuggestionsCount: analysis.suggestions.length,
+        previousSuggestionsCount,
+      });
+
+      const finalStatus = this.deriveFinalStatus(
         resultCorrect,
         runnerOutput.executionTimeMs,
         challenge.timeLimit,
       );
-
-      const finalStatus = resultCorrect
-        ? score < 70
-          ? 'OPTIMIZATION_REQUIRED'
-          : 'ACCEPTED'
-        : 'WRONG_ANSWER';
 
       await this.finalize(
         submissionId,
@@ -141,16 +161,10 @@ export class SubmissionsProcessor extends WorkerHost {
         tests,
       );
 
-      // Generate recommendations asynchronously (don't block finalization)
-      this.generateRecommendations(
-        submissionId,
-        submission.query,
-        challenge.schema?.ddlScript ?? '',
-        runnerOutput.executionTimeMs,
-        challenge.timeLimit,
-      ).catch((err) =>
+      // Persistir la recomendación con el análisis ya calculado.
+      await this.saveRecommendation(submissionId, analysis).catch((err) =>
         this.logger.warn(
-          `Recomendaciones no generadas para ${submissionId}: ${err?.message}`,
+          `Recomendaciones no persistidas para ${submissionId}: ${err?.message}`,
         ),
       );
 
@@ -167,19 +181,15 @@ export class SubmissionsProcessor extends WorkerHost {
     }
   }
 
-  private async generateRecommendations(
+  private async saveRecommendation(
     submissionId: string,
-    query: string,
-    ddlScript: string,
-    executionTimeMs: number,
-    timeLimitMs: number,
+    analysis: {
+      explanation: string;
+      suggestions: string[];
+      indexSuggestions: string[];
+      rewrittenQuery?: string;
+    },
   ): Promise<void> {
-    const analysis = this.sqlAnalyzer.analyze({
-      query,
-      ddlScript,
-      executionTimeMs,
-      timeLimitMs,
-    });
     await this.prisma.recommendation.upsert({
       where: { submissionId },
       create: {
@@ -196,6 +206,26 @@ export class SubmissionsProcessor extends WorkerHost {
         rewrittenQuery: analysis.rewrittenQuery,
       },
     });
+  }
+
+  private async findPreviousSuggestionsCount(
+    studentId: string,
+    challengeId: string,
+    currentSubmissionId: string,
+  ): Promise<number | null> {
+    const previous = await this.prisma.submission.findFirst({
+      where: {
+        studentId,
+        challengeId,
+        id: { not: currentSubmissionId },
+        status: { notIn: ['QUEUED', 'RUNNING'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { recommendation: true },
+    });
+    if (!previous?.recommendation) return null;
+    const suggestions = previous.recommendation.suggestions;
+    return Array.isArray(suggestions) ? suggestions.length : 0;
   }
 
   private compareResults(
@@ -219,16 +249,60 @@ export class SubmissionsProcessor extends WorkerHost {
     );
   }
 
-  private calculateScore(
+  // Puntaje siguiendo la rúbrica del enunciado (líneas 408–414):
+  //   60% resultado · 15% tiempo · 10% uso SQL · 5% claridad · 10% recomendaciones.
+  private calculateScore(input: {
+    correct: boolean;
+    executionTimeMs: number;
+    timeLimitMs: number;
+    query: string;
+    currentSuggestionsCount: number;
+    previousSuggestionsCount: number | null;
+  }): number {
+    if (!input.correct) return 0;
+
+    const correctness = 60;
+
+    const ratio = Math.min(input.executionTimeMs / input.timeLimitMs, 1);
+    const time = Math.round(15 * (1 - ratio));
+
+    // Uso adecuado de SQL: se descuentan 2 puntos por cada anti-patrón detectado
+    // por SqlAnalyzerService, hasta agotar los 10 puntos.
+    const sqlUsage = Math.max(0, 10 - input.currentSuggestionsCount * 2);
+
+    // Claridad: heurística sintáctica simple. Una consulta multilínea y de longitud
+    // razonable se considera clara; una línea única o muy larga pierde puntos.
+    const trimmed = input.query.trim();
+    const hasNewline = /\n/.test(trimmed);
+    const tooLong = trimmed.length > 500;
+    const clarity = hasNewline ? (tooLong ? 3 : 5) : tooLong ? 0 : 2;
+
+    // Recomendaciones atendidas: si no hay submission previa con análisis,
+    // se otorga el total (no hay recomendaciones que atender). Si la hay, se
+    // premia haber reducido el número de sugerencias respecto a la anterior.
+    let recommendations = 10;
+    if (input.previousSuggestionsCount !== null) {
+      if (input.currentSuggestionsCount <= input.previousSuggestionsCount) {
+        recommendations = 10;
+      } else {
+        recommendations = 0;
+      }
+    }
+
+    return correctness + time + sqlUsage + clarity + recommendations;
+  }
+
+  // OPTIMIZATION_REQUIRED se asigna cuando la consulta es correcta pero el tiempo
+  // se acerca al límite (>70%), tal como define el enunciado: "Funciona, pero
+  // tiene bajo rendimiento" (línea 343).
+  private deriveFinalStatus(
     correct: boolean,
-    execTimeMs: number,
+    executionTimeMs: number,
     timeLimitMs: number,
-  ): number {
-    if (!correct) return 0;
-    const correctnessScore = 60;
-    const ratio = Math.min(execTimeMs / timeLimitMs, 1);
-    const timeScore = Math.round(15 * (1 - ratio));
-    return correctnessScore + timeScore + 25; // 25 base for reaching evaluation
+  ): string {
+    if (!correct) return 'WRONG_ANSWER';
+    if (executionTimeMs > timeLimitMs * 0.7) return 'OPTIMIZATION_REQUIRED';
+    return 'ACCEPTED';
   }
 
   private async finalize(
