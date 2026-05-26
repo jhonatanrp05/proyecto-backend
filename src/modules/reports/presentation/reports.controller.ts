@@ -1,8 +1,14 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards';
-import { Roles } from '../../../shared/decorators';
+import { Roles, CurrentUser } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
 import { GetCourseReportUseCase } from '../application/use-cases/get-course-report.use-case';
 import { GetStudentReportUseCase } from '../application/use-cases/get-student-report.use-case';
@@ -38,7 +44,13 @@ export class ReportsController {
   @Get('students/:studentId/report')
   @Roles(Role.PROFESSOR, Role.STUDENT)
   @ApiOperation({ summary: 'Student report [PROFESSOR, STUDENT]' })
-  getStudentReport(@Param('studentId') studentId: string) {
+  getStudentReport(
+    @Param('studentId') studentId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    if (user.role === 'STUDENT' && studentId !== user.id) {
+      throw new ForbiddenException('You can only view your own report');
+    }
     return this.studentReportUseCase.execute(studentId);
   }
 
