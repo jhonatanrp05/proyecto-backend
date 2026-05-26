@@ -43,8 +43,8 @@ export class AssessmentsController {
   @Roles(Role.PROFESSOR)
   @ApiOperation({ summary: 'Create assessment [PROFESSOR]' })
   @ApiResponse({ status: 201, description: 'Assessment created' })
-  create(@Body() dto: CreateAssessmentDto) {
-    return this.assessmentsService.create({ ...dto });
+  create(@Body() dto: CreateAssessmentDto, @CurrentUser('id') userId: string) {
+    return this.assessmentsService.create(userId, dto);
   }
 
   @Get()
@@ -100,5 +100,30 @@ export class AssessmentsController {
     @Param('challengeId') challengeId: string,
   ) {
     return this.assessmentsService.removeChallenge(id, challengeId);
+  }
+
+  @Post(':id/attempts')
+  @Roles(Role.STUDENT)
+  @ApiOperation({
+    summary: 'Start an assessment attempt [STUDENT]',
+    description:
+      'Registra un intento si la evaluación está activa y no se superó el máximo de intentos.',
+  })
+  startAttempt(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.assessmentsService.startAttempt(id, userId);
+  }
+
+  @Get(':id/attempts')
+  @Roles(Role.STUDENT, Role.PROFESSOR)
+  @ApiOperation({
+    summary: 'List attempts [STUDENT, PROFESSOR]',
+    description:
+      'El estudiante ve sus propios intentos; el profesor del curso ve todos.',
+  })
+  listAttempts(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.assessmentsService.listAttempts(id, user);
   }
 }

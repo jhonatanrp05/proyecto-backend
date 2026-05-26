@@ -33,6 +33,14 @@ export class AssessmentsRepository {
     });
   }
 
+  async findCourseProfessor(courseId: string): Promise<string | null> {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { professorId: true },
+    });
+    return course?.professorId ?? null;
+  }
+
   async findAll(courseId?: string) {
     return this.prisma.assessment.findMany({
       where: courseId ? { courseId } : undefined,
@@ -75,6 +83,35 @@ export class AssessmentsRepository {
   async removeChallenge(assessmentId: string, challengeId: string) {
     return this.prisma.assessmentChallenge.delete({
       where: { assessmentId_challengeId: { assessmentId, challengeId } },
+    });
+  }
+
+  async isStudentEnrolled(
+    courseId: string,
+    studentId: string,
+  ): Promise<boolean> {
+    const enrollment = await this.prisma.courseStudent.findUnique({
+      where: { courseId_studentId: { courseId, studentId } },
+    });
+    return !!enrollment;
+  }
+
+  async countAttempts(assessmentId: string, studentId: string) {
+    return this.prisma.assessmentAttempt.count({
+      where: { assessmentId, studentId },
+    });
+  }
+
+  async createAttempt(assessmentId: string, studentId: string) {
+    return this.prisma.assessmentAttempt.create({
+      data: { assessmentId, studentId },
+    });
+  }
+
+  async findAttempts(assessmentId: string, studentId?: string) {
+    return this.prisma.assessmentAttempt.findMany({
+      where: { assessmentId, ...(studentId ? { studentId } : {}) },
+      orderBy: { startedAt: 'desc' },
     });
   }
 }
