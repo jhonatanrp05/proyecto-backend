@@ -75,31 +75,51 @@ async function main() {
   // 5. Crear Submissions (Los Casos de Prueba)
   console.log('📝 Creando submissions de prueba...');
 
-  // Submission 1 (Caso SELECT *)
+  // Submission 1: Regla SELECT *
   await prisma.submission.create({
     data: {
       engine: 'postgresql',
-      query: 'SELECT * FROM orders JOIN customers ON orders.customer_id = customers.id;',
+      query: 'SELECT * FROM orders;', // Viola: Uso de SELECT * y Ausencia de WHERE
       studentId: student.id,
       challengeId: challenge.id,
     },
   });
 
-  // Submission 2 (Caso Función en WHERE)
+  // Submission 2: Regla Funciones en WHERE
   await prisma.submission.create({
     data: {
       engine: 'postgresql',
-      query: 'SELECT name FROM customers WHERE EXTRACT(YEAR FROM registration_date) = 2023;',
+      query: 'SELECT name FROM customers WHERE EXTRACT(YEAR FROM registration_date) = 2023;', // Viola: Función en WHERE
       studentId: student.id,
       challengeId: challenge.id,
     },
   });
 
-  // Submission 3 (Caso de Optimización de Índices)
+  // Submission 3: Regla IN con Subconsulta
   await prisma.submission.create({
     data: {
       engine: 'postgresql',
-      query: "SELECT c.name, SUM(o.total) FROM customers c JOIN orders o ON c.id = o.customer_id WHERE c.name LIKE '%Gomez%' GROUP BY c.name ORDER BY SUM(o.total) DESC;",
+      query: 'SELECT name FROM customers WHERE id IN (SELECT customer_id FROM orders) AND registration_date > \'2023-01-01\';', // Viola: IN subquery
+      studentId: student.id,
+      challengeId: challenge.id,
+    },
+  });
+
+  // Submission 4: Regla ORDER BY en columna sin índice
+  await prisma.submission.create({
+    data: {
+      engine: 'postgresql',
+      query: 'SELECT id, total FROM orders WHERE customer_id = 1 ORDER BY order_date DESC;', // Viola: ORDER BY order_date (no indexada)
+      studentId: student.id,
+      challengeId: challenge.id,
+    },
+  });
+
+  // Submission 5: Regla UPDATE/DELETE masivo sin WHERE
+  await prisma.submission.create({
+    data: {
+      engine: 'postgresql',
+      query: 'UPDATE orders SET total = total * 1.1;', // Viola: Ausencia de cláusula WHERE
       studentId: student.id,
       challengeId: challenge.id,
     },
