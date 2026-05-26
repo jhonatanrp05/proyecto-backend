@@ -1,11 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
 
 @Injectable()
 export class GetCourseReportUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(courseId: string) {
+  async execute(courseId: string, professorId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { professorId: true },
+    });
+
+    if (!course) {
+      throw new NotFoundException(`Course ${courseId} not found`);
+    }
+
+    if (course.professorId !== professorId) {
+      throw new ForbiddenException(
+        'No tienes permisos para consultar reportes de este curso',
+      );
+    }
+
     const results = await this.prisma.$queryRaw<any[]>`
       SELECT 
         u.id,

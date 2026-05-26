@@ -30,15 +30,21 @@ export class ReportsController {
   @Get('courses/:courseId/report')
   @Roles(Role.PROFESSOR)
   @ApiOperation({ summary: 'Course report [PROFESSOR]' })
-  getCourseReport(@Param('courseId') courseId: string) {
-    return this.courseReportUseCase.execute(courseId);
+  getCourseReport(
+    @Param('courseId') courseId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.courseReportUseCase.execute(courseId, user.id);
   }
 
   @Get('courses/:courseId/leaderboard')
   @Roles(Role.PROFESSOR, Role.STUDENT)
   @ApiOperation({ summary: 'Course leaderboard [PROFESSOR, STUDENT]' })
-  getLeaderboard(@Param('courseId') courseId: string) {
-    return this.leaderboardUseCase.execute(courseId);
+  getLeaderboard(
+    @Param('courseId') courseId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.leaderboardUseCase.execute(courseId, user);
   }
 
   @Get('students/:studentId/report')
@@ -57,7 +63,10 @@ export class ReportsController {
   @Get('challenges/:challengeId/stats')
   @Roles(Role.PROFESSOR)
   @ApiOperation({ summary: 'Challenge stats [PROFESSOR]' })
-  getChallengeStats(@Param('challengeId') challengeId: string) {
-    return this.challengeStatsUseCase.execute(challengeId);
+  getChallengeStats(
+    @Param('challengeId') challengeId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.challengeStatsUseCase.execute(challengeId, user.id);
   }
 }

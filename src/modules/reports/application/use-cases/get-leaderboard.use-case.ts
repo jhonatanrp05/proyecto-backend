@@ -1,11 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
 
 @Injectable()
 export class GetLeaderboardUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(courseId: string) {
+  async execute(courseId: string, requester: { id: string; role: string }) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { professorId: true },
+    });
+
+    if (!course) {
+      throw new NotFoundException(`Course ${courseId} not found`);
+    }
+
+    if (requester.role === 'PROFESSOR' && course.professorId !== requester.id) {
+      throw new ForbiddenException(
+        'No tienes permisos para consultar el leaderboard de este curso',
+      );
+    }
+
+    if (requester.role === 'STUDENT') {
+      const isEnrolled = await this.prisma.courseStudent.findUnique({
+        where: {
+          courseId_studentId: {
+            courseId,
+            studentId: requester.id,
+          },
+        },
+      });
+
+      if (!isEnrolled) {
+        throw new ForbiddenException(
+          'No estás inscrito en este curso y no puedes ver su leaderboard',
+        );
+      }
+    }
+
     const results = await this.prisma.$queryRaw<any[]>`
       SELECT 
         u.id,
