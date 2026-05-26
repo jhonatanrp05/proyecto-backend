@@ -89,6 +89,14 @@ export class PrismaChallengeRepository implements ChallengeRepository {
     return !!enrollment;
   }
 
+  async findCourseProfessor(courseId: string): Promise<string | null> {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { professorId: true },
+    });
+    return course?.professorId ?? null;
+  }
+
   async update(id: string, partial: Partial<Challenge>): Promise<Challenge> {
     const record = await this.prisma.challenge.update({
       where: { id },

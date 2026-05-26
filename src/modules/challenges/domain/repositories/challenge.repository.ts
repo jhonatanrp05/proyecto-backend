@@ -26,6 +26,7 @@ export abstract class ChallengeRepository {
     studentId: string,
     courseId: string,
   ): Promise<boolean>;
+  abstract findCourseProfessor(courseId: string): Promise<string | null>;
   // ChallengeSchema
   abstract upsertSchema(
     challengeId: string,
