@@ -166,9 +166,19 @@ export class SubmissionsProcessor extends WorkerHost {
         tests,
       );
 
+      if (submission.assessmentAttemptId) {
+        await this.updateAssessmentAttemptProgress(
+          submission.assessmentAttemptId,
+        ).catch((err) =>
+          this.logger.warn(
+            `No se pudo actualizar el intento ${submission.assessmentAttemptId}: ${err?.message}`,
+          ),
+        );
+      }
+
       // Producir la recomendación llamando al modelo de IA (Opción 2 del enunciado).
       // Si falla, se loguea y el submission queda evaluado sin recomendación.
-      await this.generateAiRecommendation(
+      void this.generateAiRecommendation(
         submissionId,
         submission.query,
         challenge.schema.ddlScript,
@@ -341,6 +351,92 @@ export class SubmissionsProcessor extends WorkerHost {
             update: { status, score, executionTimeMs, tests: tests as any },
           },
         },
+      },
+    });
+  }
+
+  private async updateAssessmentAttemptProgress(
+    assessmentAttemptId: string,
+  ): Promise<void> {
+    const attempt = await this.prisma.assessmentAttempt.findUnique({
+      where: { id: assessmentAttemptId },
+      select: {
+        id: true,
+        startedAt: true,
+        finishedAt: true,
+        assessment: {
+          select: {
+            endDate: true,
+            duration: true,
+            challenges: {
+              select: {
+                challengeId: true,
+              },
+            },
+          },
+        },
+        submissions: {
+          where: {
+            result: {
+              isNot: null,
+            },
+          },
+          select: {
+            challengeId: true,
+            result: {
+              select: {
+                score: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!attempt) {
+      return;
+    }
+
+    const challengeIds = attempt.assessment.challenges.map(
+      (assessmentChallenge) => assessmentChallenge.challengeId,
+    );
+
+    const bestScoreByChallenge = new Map<string, number>();
+    for (const submission of attempt.submissions) {
+      const score = submission.result?.score ?? 0;
+      const previousBest = bestScoreByChallenge.get(submission.challengeId);
+
+      if (previousBest === undefined || score > previousBest) {
+        bestScoreByChallenge.set(submission.challengeId, score);
+      }
+    }
+
+    const totalScore = challengeIds.reduce(
+      (sum, challengeId) => sum + (bestScoreByChallenge.get(challengeId) ?? 0),
+      0,
+    );
+
+    const aggregatedScore =
+      challengeIds.length > 0 ? Math.round(totalScore / challengeIds.length) : 0;
+
+    const now = new Date();
+    const attemptDeadline = new Date(
+      attempt.startedAt.getTime() + attempt.assessment.duration * 60_000,
+    );
+    const answeredAllChallenges =
+      challengeIds.length > 0 &&
+      challengeIds.every((challengeId) => bestScoreByChallenge.has(challengeId));
+
+    const outOfTime =
+      now > attemptDeadline || now > attempt.assessment.endDate;
+    const shouldFinish =
+      !attempt.finishedAt && (answeredAllChallenges || outOfTime);
+
+    await this.prisma.assessmentAttempt.update({
+      where: { id: assessmentAttemptId },
+      data: {
+        score: aggregatedScore,
+        ...(shouldFinish ? { finishedAt: now } : {}),
       },
     });
   }
