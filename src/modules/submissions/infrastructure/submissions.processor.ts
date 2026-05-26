@@ -417,7 +417,9 @@ export class SubmissionsProcessor extends WorkerHost {
     );
 
     const aggregatedScore =
-      challengeIds.length > 0 ? Math.round(totalScore / challengeIds.length) : 0;
+      challengeIds.length > 0
+        ? Math.round(totalScore / challengeIds.length)
+        : 0;
 
     const now = new Date();
     const attemptDeadline = new Date(
@@ -425,10 +427,11 @@ export class SubmissionsProcessor extends WorkerHost {
     );
     const answeredAllChallenges =
       challengeIds.length > 0 &&
-      challengeIds.every((challengeId) => bestScoreByChallenge.has(challengeId));
+      challengeIds.every((challengeId) =>
+        bestScoreByChallenge.has(challengeId),
+      );
 
-    const outOfTime =
-      now > attemptDeadline || now > attempt.assessment.endDate;
+    const outOfTime = now > attemptDeadline || now > attempt.assessment.endDate;
     const shouldFinish =
       !attempt.finishedAt && (answeredAllChallenges || outOfTime);
 
