@@ -6,7 +6,7 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { Roles } from '../../../shared/decorators';
+import { CurrentUser, Roles } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
 import { GenerateRecommendationUseCase } from '../application/use-cases/generate-recommendation.use-case';
 import { RecommendationResponseDto } from './dto/recommendation-response.dto';
@@ -38,7 +38,8 @@ export class RecommendationsController {
   })
   async getRecommendations(
     @Param('id') id: string,
+    @CurrentUser() user: { id: string; role: string },
   ): Promise<RecommendationResponseDto> {
-    return await this.generateRecommendationUseCase.execute(id);
+    return await this.generateRecommendationUseCase.execute(id, user);
   }
 }

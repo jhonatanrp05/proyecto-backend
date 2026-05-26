@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
 import {
   IRecommendationRepository,
@@ -18,23 +23,23 @@ export class GenerateRecommendationUseCase {
     private readonly sqlAnalyzer: SqlAnalyzerService,
     private readonly aiService: AiRecommendationService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
-  async execute(submissionId: string): Promise<RecommendationResponseDto> {
-    // 1. Verificar si ya existe la recomendación en BD
-    const existing =
-      await this.recommendationRepository.findBySubmissionId(submissionId);
-    if (existing) {
-      return this.mapToDto(existing);
-    }
-
-    // 2. Obtener la Submission y el Challenge de la BD
+  async execute(
+    submissionId: string,
+    requester?: { id: string; role: string },
+  ): Promise<RecommendationResponseDto> {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
       include: {
         challenge: {
           include: {
             schema: true,
+            course: {
+              select: {
+                professorId: true,
+              },
+            },
           },
         },
         result: true,
@@ -45,6 +50,16 @@ export class GenerateRecommendationUseCase {
       throw new NotFoundException(
         `La submission con ID ${submissionId} no existe.`,
       );
+    }
+
+    if (requester) {
+      this.assertAccess(submission, requester);
+    }
+
+    const existing =
+      await this.recommendationRepository.findBySubmissionId(submissionId);
+    if (existing) {
+      return this.mapToDto(existing);
     }
 
     const query = submission.query;
@@ -77,6 +92,31 @@ export class GenerateRecommendationUseCase {
 
     // 6. Retornar el resultado mapeado
     return this.mapToDto(saved);
+  }
+
+  private assertAccess(
+    submission: {
+      studentId: string;
+      challenge: { course: { professorId: string } };
+    },
+    requester: { id: string; role: string },
+  ) {
+    if (requester.role === 'ADMIN') return;
+
+    if (requester.role === 'STUDENT' && submission.studentId !== requester.id) {
+      throw new ForbiddenException(
+        'No tienes permisos para ver estas recomendaciones',
+      );
+    }
+
+    if (
+      requester.role === 'PROFESSOR' &&
+      submission.challenge.course.professorId !== requester.id
+    ) {
+      throw new ForbiddenException(
+        'No tienes permisos para ver estas recomendaciones',
+      );
+    }
   }
 
   private mapToDto(recommendation: Recommendation): RecommendationResponseDto {
