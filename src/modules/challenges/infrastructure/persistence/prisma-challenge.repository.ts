@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
-import { ChallengeRepository, FindChallengesFilter } from '../../domain/repositories/challenge.repository';
-import { Challenge, ChallengeStatus } from '../../domain/entities/challenge.entity';
+import {
+  ChallengeRepository,
+  FindChallengesFilter,
+} from '../../domain/repositories/challenge.repository';
+import {
+  Challenge,
+  ChallengeStatus,
+} from '../../domain/entities/challenge.entity';
 import { ChallengeSchema } from '../../domain/entities/challenge-schema.entity';
 import { SeedData } from '../../domain/entities/seed-data.entity';
 import { ExpectedResult } from '../../domain/entities/expected-result.entity';
@@ -11,9 +17,7 @@ import { ChallengeMapper } from '../mappers/challenge.mapper';
 export class PrismaChallengeRepository implements ChallengeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-
   //  Challenge
-
 
   async create(challenge: Challenge): Promise<Challenge> {
     const record = await this.prisma.challenge.create({
@@ -53,34 +57,37 @@ export class PrismaChallengeRepository implements ChallengeRepository {
       include: { schema: true, seedData: true, expectedResult: true },
       orderBy: { createdAt: 'desc' },
     });
-    return records.map(ChallengeMapper.toDomain);
+    return records.map((r) => ChallengeMapper.toDomain(r));
   }
   async findAllForStudent(studentId: string): Promise<Challenge[]> {
-  const records = await this.prisma.challenge.findMany({
-    where: {
-      status: 'published',
-      course: {
-        students: {
-          some: {
-            studentId,
+    const records = await this.prisma.challenge.findMany({
+      where: {
+        status: 'published',
+        course: {
+          students: {
+            some: {
+              studentId,
+            },
           },
         },
       },
-    },
-    include: { schema: true, seedData: true, expectedResult: true },
-    orderBy: { createdAt: 'desc' },
-  });
-  return records.map(ChallengeMapper.toDomain);
-}
+      include: { schema: true, seedData: true, expectedResult: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return records.map((r) => ChallengeMapper.toDomain(r));
+  }
 
-async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
-  const enrollment = await this.prisma.courseStudent.findUnique({
-    where: {
-      courseId_studentId: { courseId, studentId },
-    },
-  });
-  return !!enrollment;
-}
+  async isStudentEnrolled(
+    studentId: string,
+    courseId: string,
+  ): Promise<boolean> {
+    const enrollment = await this.prisma.courseStudent.findUnique({
+      where: {
+        courseId_studentId: { courseId, studentId },
+      },
+    });
+    return !!enrollment;
+  }
 
   async update(id: string, partial: Partial<Challenge>): Promise<Challenge> {
     const record = await this.prisma.challenge.update({
@@ -90,7 +97,9 @@ async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
         ...(partial.description && { description: partial.description }),
         ...(partial.difficulty && { difficulty: partial.difficulty }),
         ...(partial.tags && { tags: partial.tags }),
-        ...(partial.databaseEngine && { databaseEngine: partial.databaseEngine }),
+        ...(partial.databaseEngine && {
+          databaseEngine: partial.databaseEngine,
+        }),
         ...(partial.timeLimit && { timeLimit: partial.timeLimit }),
       },
     });
@@ -109,11 +118,12 @@ async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
     await this.prisma.challenge.delete({ where: { id } });
   }
 
-
   //  ChallengeSchema
 
-
-  async upsertSchema(challengeId: string, ddlScript: string): Promise<ChallengeSchema> {
+  async upsertSchema(
+    challengeId: string,
+    ddlScript: string,
+  ): Promise<ChallengeSchema> {
     const record = await this.prisma.challengeSchema.upsert({
       where: { challengeId },
       update: { ddlScript },
@@ -123,16 +133,20 @@ async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
   }
 
   async findSchema(challengeId: string): Promise<ChallengeSchema | null> {
-    const record = await this.prisma.challengeSchema.findUnique({ where: { challengeId } });
+    const record = await this.prisma.challengeSchema.findUnique({
+      where: { challengeId },
+    });
     if (!record) return null;
     return ChallengeMapper.toSchema(record);
   }
 
-
   //  SeedData
 
-
-  async upsertSeedData(challengeId: string, insertScript: string, isGenerated: boolean): Promise<SeedData> {
+  async upsertSeedData(
+    challengeId: string,
+    insertScript: string,
+    isGenerated: boolean,
+  ): Promise<SeedData> {
     const record = await this.prisma.seedData.upsert({
       where: { challengeId },
       update: { insertScript, isGenerated },
@@ -142,14 +156,14 @@ async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
   }
 
   async findSeedData(challengeId: string): Promise<SeedData | null> {
-    const record = await this.prisma.seedData.findUnique({ where: { challengeId } });
+    const record = await this.prisma.seedData.findUnique({
+      where: { challengeId },
+    });
     if (!record) return null;
     return ChallengeMapper.toSeedData(record);
   }
 
-
   //  ExpectedResult
-
 
   async upsertExpectedResult(
     challengeId: string,
@@ -164,8 +178,12 @@ async isStudentEnrolled(studentId: string, courseId: string): Promise<boolean> {
     return ChallengeMapper.toExpectedResult(record);
   }
 
-  async findExpectedResult(challengeId: string): Promise<ExpectedResult | null> {
-    const record = await this.prisma.expectedResult.findUnique({ where: { challengeId } });
+  async findExpectedResult(
+    challengeId: string,
+  ): Promise<ExpectedResult | null> {
+    const record = await this.prisma.expectedResult.findUnique({
+      where: { challengeId },
+    });
     if (!record) return null;
     return ChallengeMapper.toExpectedResult(record);
   }

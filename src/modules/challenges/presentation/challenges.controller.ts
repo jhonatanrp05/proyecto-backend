@@ -13,7 +13,6 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 
@@ -44,7 +43,7 @@ import { GenerateDataDto } from '../application/dtos/generate-data.dto';
 
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
-import { Roles, CurrentUser } from '../../../shared/decorators';
+import { Roles } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants/roles.enum';
 @ApiTags('Challenges')
 @ApiBearerAuth()

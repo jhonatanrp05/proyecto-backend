@@ -12,7 +12,7 @@ export class CreateSubmissionDto {
 
   @ApiProperty({
     description: 'La consulta SQL enviada por el estudiante',
-    example: 'SELECT * FROM customers WHERE city = \'Bogotá\';',
+    example: "SELECT * FROM customers WHERE city = 'Bogotá';",
   })
   @IsString()
   @IsNotEmpty()

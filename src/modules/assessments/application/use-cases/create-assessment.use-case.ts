@@ -13,5 +13,4 @@ export class CreateAssessmentUseCase {
       endDate: new Date(data.endDate),
     });
   }
-
 }

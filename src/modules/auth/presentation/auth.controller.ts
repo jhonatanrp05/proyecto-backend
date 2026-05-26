@@ -15,7 +15,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: 201,
-    description: 'User registered successfully'
+    description: 'User registered successfully',
   })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -27,7 +27,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login and get JWT token' })
   @ApiResponse({
     status: 200,
-    description: 'User logged in successfully'
+    description: 'User logged in successfully',
   })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);

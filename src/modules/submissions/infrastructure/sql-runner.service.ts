@@ -162,7 +162,6 @@ export class SqlRunnerService {
 
   private async getFreePort(): Promise<number> {
     return new Promise((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const net = require('net');
       const server = net.createServer();
       server.listen(0, () => {

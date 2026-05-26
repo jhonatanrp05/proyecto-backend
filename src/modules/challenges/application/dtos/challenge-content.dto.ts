@@ -10,7 +10,8 @@ export class ChangeChallengeStatusDto {
 
 export class UploadSchemaDto {
   @ApiProperty({
-    example: 'CREATE TABLE customers (id SERIAL PRIMARY KEY, name VARCHAR(100));',
+    example:
+      'CREATE TABLE customers (id SERIAL PRIMARY KEY, name VARCHAR(100));',
     description: 'Script DDL con los CREATE TABLE del reto',
   })
   @IsString()

@@ -5,7 +5,6 @@ import {
   IsArray,
   IsInt,
   IsPositive,
-  Min,
   ArrayNotEmpty,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -17,7 +16,9 @@ export class CreateChallengeDto {
   @IsNotEmpty()
   title!: string;
 
-  @ApiProperty({ example: 'Escribe una query que retorne los clientes con más de 3 compras.' })
+  @ApiProperty({
+    example: 'Escribe una query que retorne los clientes con más de 3 compras.',
+  })
   @IsString()
   @IsNotEmpty()
   description!: string;

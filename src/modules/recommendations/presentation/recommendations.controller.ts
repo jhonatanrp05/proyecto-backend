@@ -15,17 +15,27 @@ import { RecommendationResponseDto } from './dto/recommendation-response.dto';
 @ApiBearerAuth()
 @Controller('submissions')
 export class RecommendationsController {
-  constructor(private readonly generateRecommendationUseCase: GenerateRecommendationUseCase) {}
+  constructor(
+    private readonly generateRecommendationUseCase: GenerateRecommendationUseCase,
+  ) {}
 
   @Get(':id/recommendations')
   @Roles(Role.STUDENT, Role.PROFESSOR)
   @ApiOperation({
     summary: 'Get SQL optimization recommendations [STUDENT, PROFESSOR]',
-    description: 'Returns optimization recommendations generated after evaluating a submission',
+    description:
+      'Returns optimization recommendations generated after evaluating a submission',
   })
   @ApiParam({ name: 'id', description: 'ID de la submission' })
-  @ApiResponse({ status: 200, type: RecommendationResponseDto, description: 'Recomendaciones devueltas exitosamente' })
-  @ApiResponse({ status: 404, description: 'Recommendations not yet available for this submission' })
+  @ApiResponse({
+    status: 200,
+    type: RecommendationResponseDto,
+    description: 'Recomendaciones devueltas exitosamente',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Recommendations not yet available for this submission',
+  })
   async getRecommendations(
     @Param('id') id: string,
   ): Promise<RecommendationResponseDto> {

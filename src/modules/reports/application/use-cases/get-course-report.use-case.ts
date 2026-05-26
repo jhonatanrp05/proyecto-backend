@@ -23,13 +23,13 @@ export class GetCourseReportUseCase {
       ORDER BY avg_score DESC
     `;
 
-    return results.map(r => ({
-      studentId:        r.id,
-      name:             r.name,
-      email:            r.email,
-      avgScore:         Number(r.avg_score),
+    return results.map((r) => ({
+      studentId: r.id,
+      name: r.name,
+      email: r.email,
+      avgScore: Number(r.avg_score),
       totalSubmissions: Number(r.total_submissions),
-      accepted:         Number(r.accepted),
+      accepted: Number(r.accepted),
     }));
   }
 }

@@ -24,12 +24,12 @@ export class GetLeaderboardUseCase {
     `;
 
     return results.map((r, index) => ({
-      rank:             index + 1,
-      studentId:        r.id,
-      name:             r.name,
-      email:            r.email,
-      avgScore:         Number(r.avg_score),
-      accepted:         Number(r.accepted),
+      rank: index + 1,
+      studentId: r.id,
+      name: r.name,
+      email: r.email,
+      avgScore: Number(r.avg_score),
+      accepted: Number(r.accepted),
       totalSubmissions: Number(r.total_submissions),
     }));
   }

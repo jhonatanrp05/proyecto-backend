@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ChallengeRepository } from '../../domain/repositories/challenge.repository';
 import { Challenge } from '../../domain/entities/challenge.entity';
 import { UpdateChallengeDto } from '../dtos/update-challenge.dto';
@@ -7,7 +11,11 @@ import { UpdateChallengeDto } from '../dtos/update-challenge.dto';
 export class UpdateChallengeUseCase {
   constructor(private readonly challengeRepo: ChallengeRepository) {}
 
-  async execute(id: string, dto: UpdateChallengeDto, professorId: string): Promise<Challenge> {
+  async execute(
+    id: string,
+    dto: UpdateChallengeDto,
+    professorId: string,
+  ): Promise<Challenge> {
     const challenge = await this.challengeRepo.findById(id);
 
     if (!challenge) {
@@ -15,7 +23,9 @@ export class UpdateChallengeUseCase {
     }
 
     if (challenge.createdBy !== professorId) {
-      throw new ForbiddenException('Solo el profesor que creó el reto puede modificarlo.');
+      throw new ForbiddenException(
+        'Solo el profesor que creó el reto puede modificarlo.',
+      );
     }
 
     if (challenge.status === 'archived') {

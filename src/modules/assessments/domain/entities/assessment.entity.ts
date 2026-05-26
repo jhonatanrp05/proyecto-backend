@@ -2,12 +2,12 @@
 export class Assessment {
   id!: string;
   name!: string;
-  description?: string | null;  
+  description?: string | null;
   startDate!: Date;
   endDate!: Date;
   duration!: number;
   maxAttempts!: number;
-  visibility!: boolean;         
+  visibility!: boolean;
   courseId!: string;
   challengeIds!: string[];
   createdAt!: Date;

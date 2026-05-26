@@ -7,7 +7,9 @@ import { Recommendation } from '../../domain/entities/recommendation.entity';
 export class PrismaRecommendationRepository implements IRecommendationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findBySubmissionId(submissionId: string): Promise<Recommendation | null> {
+  async findBySubmissionId(
+    submissionId: string,
+  ): Promise<Recommendation | null> {
     const raw = await this.prisma.recommendation.findUnique({
       where: { submissionId },
     });
@@ -21,7 +23,7 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
       raw.suggestions,
       raw.indexSuggestions,
       raw.rewrittenQuery,
-      raw.createdAt
+      raw.createdAt,
     );
   }
 
@@ -48,7 +50,7 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
       raw.suggestions,
       raw.indexSuggestions,
       raw.rewrittenQuery,
-      raw.createdAt
+      raw.createdAt,
     );
   }
 }

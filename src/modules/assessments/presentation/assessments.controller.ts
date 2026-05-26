@@ -28,7 +28,7 @@ class AddChallengeDto {
 
   @ApiProperty({
     example: 1,
-    description: 'Orden del reto dentro de la evaluación',
+    description: 'Orden del reto dentro de la evaluaciï¿½n',
   })
   order: number;
 }
@@ -43,8 +43,8 @@ export class AssessmentsController {
   @Roles(Role.PROFESSOR)
   @ApiOperation({ summary: 'Create assessment [PROFESSOR]' })
   @ApiResponse({ status: 201, description: 'Assessment created' })
-  create(@Body() dto: CreateAssessmentDto, @CurrentUser('id') userId: string) {
-    return this.assessmentsService.create({ ...dto } as any);
+  create(@Body() dto: CreateAssessmentDto) {
+    return this.assessmentsService.create({ ...dto });
   }
 
   @Get()
@@ -71,7 +71,7 @@ export class AssessmentsController {
     @Body() dto: UpdateAssessmentDto,
     @CurrentUser('id') userId: string,
   ) {
-    return this.assessmentsService.update(id, userId, dto as any);
+    return this.assessmentsService.update(id, userId, dto);
   }
 
   @Delete(':id')

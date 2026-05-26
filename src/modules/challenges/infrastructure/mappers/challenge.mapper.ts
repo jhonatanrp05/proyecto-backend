@@ -29,7 +29,9 @@ export class ChallengeMapper {
     }
 
     if (record.expectedResult) {
-      challenge.expectedResult = ChallengeMapper.toExpectedResult(record.expectedResult);
+      challenge.expectedResult = ChallengeMapper.toExpectedResult(
+        record.expectedResult,
+      );
     }
 
     return challenge;

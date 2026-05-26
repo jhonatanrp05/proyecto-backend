@@ -1,4 +1,13 @@
-import { IsArray, IsInt, IsPositive, IsString, IsNotEmpty, ValidateNested, IsObject, Max } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsPositive,
+  IsString,
+  IsNotEmpty,
+  ValidateNested,
+  IsObject,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -19,7 +28,7 @@ export type FieldType =
 export interface FieldConfig {
   type: FieldType;
   // foreign_key
-  references?: string;   // ej: "customers.id"
+  references?: string; // ej: "customers.id"
   // decimal / integer
   min?: number;
   max?: number;
@@ -47,16 +56,16 @@ export class TableGenerationConfig {
   @ApiProperty({
     example: {
       customer_id: { type: 'foreign_key', references: 'customers.id' },
-      total:       { type: 'decimal', min: 10000, max: 500000 },
-      created_at:  { type: 'date', from: '2026-01-01', to: '2026-12-31' },
-      status:      { type: 'enum', values: ['PENDING', 'PAID', 'CANCELLED'] },
-      name:        { type: 'name' },
-      email:       { type: 'email' },
-      phone:       { type: 'phone' },
-      address:     { type: 'address' },
-      notes:       { type: 'text' },
-      quantity:    { type: 'integer', min: 1, max: 100 },
-      active:      { type: 'boolean' },
+      total: { type: 'decimal', min: 10000, max: 500000 },
+      created_at: { type: 'date', from: '2026-01-01', to: '2026-12-31' },
+      status: { type: 'enum', values: ['PENDING', 'PAID', 'CANCELLED'] },
+      name: { type: 'name' },
+      email: { type: 'email' },
+      phone: { type: 'phone' },
+      address: { type: 'address' },
+      notes: { type: 'text' },
+      quantity: { type: 'integer', min: 1, max: 100 },
+      active: { type: 'boolean' },
     },
   })
   @IsObject()
@@ -65,7 +74,8 @@ export class TableGenerationConfig {
 
 export class GenerateDataDto {
   @ApiProperty({
-    description: 'Lista de tablas a generar. El orden importa: las tablas referenciadas por FK deben ir primero.',
+    description:
+      'Lista de tablas a generar. El orden importa: las tablas referenciadas por FK deben ir primero.',
     type: [TableGenerationConfig],
   })
   @IsArray()

@@ -6,6 +6,6 @@ export class Recommendation {
     public readonly suggestions: any,
     public readonly indexSuggestions: any,
     public readonly rewrittenQuery?: string | null,
-    public readonly createdAt?: Date
+    public readonly createdAt?: Date,
   ) {}
 }

@@ -3,12 +3,14 @@ import { ChallengeRepository } from '../../domain/repositories/challenge.reposit
 import { Challenge } from '../../domain/entities/challenge.entity';
 import { CreateChallengeDto } from '../dtos/create-challenge.dto';
 
-
 @Injectable()
 export class CreateChallengeUseCase {
   constructor(private readonly challengeRepo: ChallengeRepository) {}
 
-  async execute(dto: CreateChallengeDto, professorId: string): Promise<Challenge> {
+  async execute(
+    dto: CreateChallengeDto,
+    professorId: string,
+  ): Promise<Challenge> {
     const challenge = new Challenge({
       id: crypto.randomUUID(),
       title: dto.title,
@@ -17,7 +19,7 @@ export class CreateChallengeUseCase {
       tags: dto.tags,
       databaseEngine: dto.databaseEngine,
       timeLimit: dto.timeLimit,
-      status: 'draft', 
+      status: 'draft',
       courseId: dto.courseId,
       createdBy: professorId,
       createdAt: new Date(),

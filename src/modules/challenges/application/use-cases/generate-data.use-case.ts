@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ChallengeRepository } from '../../domain/repositories/challenge.repository';
 import { SeedData } from '../../domain/entities/seed-data.entity';
 import { GenerateDataDto, FieldConfig } from '../dtos/generate-data.dto';
@@ -11,19 +16,29 @@ const BATCH_SIZE = 1_000;
 export class GenerateDataUseCase {
   constructor(private readonly challengeRepo: ChallengeRepository) {}
 
-  async execute(challengeId: string, dto: GenerateDataDto, professorId: string): Promise<SeedData> {
+  async execute(
+    challengeId: string,
+    dto: GenerateDataDto,
+    professorId: string,
+  ): Promise<SeedData> {
     const challenge = await this.challengeRepo.findById(challengeId);
 
     if (!challenge) {
-      throw new NotFoundException(`Reto con id "${challengeId}" no encontrado.`);
+      throw new NotFoundException(
+        `Reto con id "${challengeId}" no encontrado.`,
+      );
     }
 
     if (challenge.createdBy !== professorId) {
-      throw new ForbiddenException('Solo el profesor que creó el reto puede generar datos.');
+      throw new ForbiddenException(
+        'Solo el profesor que creó el reto puede generar datos.',
+      );
     }
 
     if (!challenge.schema) {
-      throw new BadRequestException('El reto no tiene un esquema DDL cargado. Carga el esquema antes de generar datos.');
+      throw new BadRequestException(
+        'El reto no tiene un esquema DDL cargado. Carga el esquema antes de generar datos.',
+      );
     }
 
     const insertScript = this.buildInsertScript(dto);
@@ -87,7 +102,6 @@ export class GenerateDataUseCase {
     }
 
     switch (config.type) {
-
       case 'foreign_key': {
         const [refTable] = config.references!.split('.');
         const ids = generatedIds[refTable];
@@ -114,8 +128,10 @@ export class GenerateDataUseCase {
       }
 
       case 'date': {
-        const from = config.from ? new Date(config.from) : new Date('2020-01-01');
-        const to   = config.to   ? new Date(config.to)   : new Date();
+        const from = config.from
+          ? new Date(config.from)
+          : new Date('2020-01-01');
+        const to = config.to ? new Date(config.to) : new Date();
         const date = faker.date.between({ from, to });
         return `'${date.toISOString().split('T')[0]}'`;
       }
@@ -123,7 +139,9 @@ export class GenerateDataUseCase {
       case 'enum': {
         const values = config.values ?? [];
         if (values.length === 0) {
-          throw new BadRequestException('El campo enum debe tener al menos un valor.');
+          throw new BadRequestException(
+            'El campo enum debe tener al menos un valor.',
+          );
         }
         const picked = values[Math.floor(Math.random() * values.length)];
         return `'${this.escape(picked)}'`;

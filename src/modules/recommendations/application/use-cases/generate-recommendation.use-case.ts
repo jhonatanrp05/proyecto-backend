@@ -1,6 +1,9 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
-import { IRecommendationRepository, RECOMMENDATION_REPOSITORY } from '../../domain/repositories/recommendation.repository.interface';
+import {
+  IRecommendationRepository,
+  RECOMMENDATION_REPOSITORY,
+} from '../../domain/repositories/recommendation.repository.interface';
 import { SqlAnalyzerService } from '../services/sql-analyzer.service';
 import { AiRecommendationService } from '../../infrastructure/services/ai-recommendation.service';
 import { Recommendation } from '../../domain/entities/recommendation.entity';
@@ -14,12 +17,13 @@ export class GenerateRecommendationUseCase {
     private readonly recommendationRepository: IRecommendationRepository,
     private readonly sqlAnalyzer: SqlAnalyzerService,
     private readonly aiService: AiRecommendationService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(submissionId: string): Promise<RecommendationResponseDto> {
     // 1. Verificar si ya existe la recomendación en BD
-    const existing = await this.recommendationRepository.findBySubmissionId(submissionId);
+    const existing =
+      await this.recommendationRepository.findBySubmissionId(submissionId);
     if (existing) {
       return this.mapToDto(existing);
     }
@@ -31,14 +35,16 @@ export class GenerateRecommendationUseCase {
         challenge: {
           include: {
             schema: true,
-          }
+          },
         },
         result: true,
-      }
+      },
     });
 
     if (!submission) {
-      throw new NotFoundException(`La submission con ID ${submissionId} no existe.`);
+      throw new NotFoundException(
+        `La submission con ID ${submissionId} no existe.`,
+      );
     }
 
     const query = submission.query;
@@ -53,7 +59,7 @@ export class GenerateRecommendationUseCase {
       query,
       schemaDdl,
       executionTimeMs,
-      staticIssues
+      staticIssues,
     );
 
     // 5. Guardar en BD
@@ -64,7 +70,7 @@ export class GenerateRecommendationUseCase {
       aiFeedback.suggestions,
       aiFeedback.indexSuggestions,
       aiFeedback.rewrittenQuery,
-      new Date()
+      new Date(),
     );
 
     const saved = await this.recommendationRepository.save(newRecommendation);

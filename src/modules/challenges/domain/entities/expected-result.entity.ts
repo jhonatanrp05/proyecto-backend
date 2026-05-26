@@ -1,7 +1,7 @@
 export class ExpectedResult {
   id!: string;
   challengeId!: string;
-  query!: string;     
+  query!: string;
   outputJson!: Record<string, unknown>[]; // El resultado esperado como array de objetos JSON
   createdAt!: Date;
   updatedAt!: Date;
@@ -26,7 +26,6 @@ export class ExpectedResult {
       if (expectedKeys.length !== obtainedKeys.length) return false;
 
       return expectedKeys.every((key) => {
-       
         return String(expectedRow[key]) === String(obtainedRow[key]);
       });
     });

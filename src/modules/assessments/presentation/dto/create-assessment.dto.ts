@@ -1,7 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { 
-  IsString, IsOptional, IsDateString, 
-  IsInt, IsBoolean, IsArray, IsUUID, Min 
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsInt,
+  IsBoolean,
+  IsArray,
+  IsUUID,
+  Min,
 } from 'class-validator';
 
 export class CreateAssessmentDto {
@@ -9,7 +15,10 @@ export class CreateAssessmentDto {
   @IsString()
   name!: string;
 
-  @ApiProperty({ example: 'Evaluación sobre joins y subconsultas', required: false })
+  @ApiProperty({
+    example: 'Evaluación sobre joins y subconsultas',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   description?: string;

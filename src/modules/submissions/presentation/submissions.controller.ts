@@ -7,11 +7,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants/roles.enum';
 import { CurrentUser } from '../../../shared/decorators';

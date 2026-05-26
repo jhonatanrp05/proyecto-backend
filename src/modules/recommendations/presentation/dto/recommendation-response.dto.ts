@@ -15,7 +15,8 @@ export class RecommendationResponseDto {
 
   @ApiProperty({
     description: 'Explicación de la recomendación de la IA',
-    example: 'La consulta se puede optimizar agregando un índice o cambiando la estructura del JOIN.',
+    example:
+      'La consulta se puede optimizar agregando un índice o cambiando la estructura del JOIN.',
   })
   explanation: string;
 

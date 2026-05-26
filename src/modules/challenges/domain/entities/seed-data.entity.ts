@@ -11,7 +11,8 @@ export class SeedData {
   }
 
   isValid(): boolean {
-    if (!this.insertScript || this.insertScript.trim().length === 0) return false;
+    if (!this.insertScript || this.insertScript.trim().length === 0)
+      return false;
     return this.insertScript.toUpperCase().includes('INSERT INTO');
   }
 }

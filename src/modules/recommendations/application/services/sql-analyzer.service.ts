@@ -37,7 +37,8 @@ export class SqlAnalyzerService {
           if (ast.where) {
             if (this.hasFunctionInWhere(ast.where)) {
               issues.push({
-                issue: 'Uso de funciones en la cláusula WHERE (afecta el rendimiento de los índices)',
+                issue:
+                  'Uso de funciones en la cláusula WHERE (afecta el rendimiento de los índices)',
                 severity: 'warning',
               });
             }
@@ -76,13 +77,13 @@ export class SqlAnalyzerService {
       }
       return false;
     }
-    
+
     if (typeof whereObj === 'object') {
       // Verificamos si es una llamada a función
       if (whereObj.type === 'function' || whereObj.type === 'aggr_func') {
         return true;
       }
-      
+
       // Recorremos las propiedades anidadas recursivamente (left, right, args, etc.)
       for (const key in whereObj) {
         if (this.hasFunctionInWhere(whereObj[key])) {
@@ -90,7 +91,7 @@ export class SqlAnalyzerService {
         }
       }
     }
-    
+
     return false;
   }
 }

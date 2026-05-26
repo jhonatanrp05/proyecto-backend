@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AssessmentRepository } from '../../domain/repositories/assesment.repository';
 
 @Injectable()
@@ -11,11 +15,15 @@ export class ValidateSubmissionUseCase {
 
     const now = new Date();
     if (now < assessment.startDate || now > assessment.endDate) {
-      throw new ForbiddenException('La evaluación no está activa en este momento.');
+      throw new ForbiddenException(
+        'La evaluación no está activa en este momento.',
+      );
     }
 
     if (submissionCount >= assessment.maxAttempts) {
-      throw new ForbiddenException('Superaste el máximo de intentos permitidos.');
+      throw new ForbiddenException(
+        'Superaste el máximo de intentos permitidos.',
+      );
     }
   }
 }

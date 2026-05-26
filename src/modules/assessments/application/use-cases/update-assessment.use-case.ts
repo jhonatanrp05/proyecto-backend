@@ -12,7 +12,7 @@ export class UpdateAssessmentUseCase {
     return this.repo.update(id, {
       ...data,
       startDate: data.startDate ? new Date(data.startDate) : undefined,
-      endDate:   data.endDate   ? new Date(data.endDate)   : undefined,
+      endDate: data.endDate ? new Date(data.endDate) : undefined,
     });
   }
 }

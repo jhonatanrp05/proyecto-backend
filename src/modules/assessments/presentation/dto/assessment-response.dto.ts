@@ -3,7 +3,6 @@ import { ApiProperty } from '@nestjs/swagger';
 export class AssessmentResponseDto {
   @ApiProperty({ example: 'assessment-123' })
   id!: string;
-  
 
   @ApiProperty({ example: 'Parcial 1 SQL' })
   name!: string;
