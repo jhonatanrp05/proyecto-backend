@@ -32,14 +32,14 @@ export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
   @Post()
-  @Roles(Role.PROFESSOR)
-  @ApiOperation({ summary: 'Create a course [PROFESSOR]' })
+  @Roles(Role.PROFESSOR, Role.ADMIN)
+  @ApiOperation({ summary: 'Create a course [PROFESSOR, ADMIN]' })
   @ApiResponse({
     status: 201,
     description: 'Course created successfully',
   })
   create(@Body() dto: CreateCourseDto, @CurrentUser() user: any) {
-    return this.coursesService.create(dto, user.id);
+    return this.coursesService.create(dto, user.id, user.role);
   }
 
   @Get()
@@ -51,6 +51,17 @@ export class CoursesController {
   })
   findAll() {
     return this.coursesService.findAll();
+  }
+
+  @Get('me')
+  @Roles(Role.STUDENT)
+  @ApiOperation({ summary: 'List courses the student is enrolled in [STUDENT]' })
+  @ApiResponse({
+    status: 200,
+    description: 'Enrolled courses retrieved successfully',
+  })
+  findMyCourses(@CurrentUser() user: any) {
+    return this.coursesService.findByStudent(user.id);
   }
 
   @Get(':id')

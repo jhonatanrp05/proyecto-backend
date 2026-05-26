@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCourseDto {
   @ApiProperty({ example: 'Bases de Datos II' })
@@ -21,4 +21,12 @@ export class CreateCourseDto {
   @IsString()
   @IsNotEmpty()
   group: string;
+
+  @ApiPropertyOptional({
+    example: 'uuid-of-professor',
+    description: 'Required when an ADMIN creates the course on behalf of a professor',
+  })
+  @IsUUID()
+  @IsOptional()
+  professorId?: string;
 }
