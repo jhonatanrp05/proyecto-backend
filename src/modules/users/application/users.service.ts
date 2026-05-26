@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -34,7 +39,11 @@ export class UsersService {
     return this.userRepository.delete(id);
   }
 
-  async getReport(userId: string) {
+  async getReport(userId: string, requesterId: string, requesterRole: string) {
+    if (requesterRole === 'STUDENT' && userId !== requesterId) {
+      throw new ForbiddenException('You can only view your own report');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, name: true, email: true, role: true },
