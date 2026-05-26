@@ -177,8 +177,8 @@ model SubmissionResult {
 model Recommendation {
   id               String   @id @default(uuid())
   explanation      String
-  suggestions      String[]
-  indexSuggestions String[]
+  suggestions      Json
+  indexSuggestions Json
   rewrittenQuery   String?
   createdAt        DateTime @default(now())
 
