@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    command: npx prisma migrate deploy
+    command: npx prisma db push
     env_file: .env
     environment:
       DATABASE_URL: postgresql://admin:secret@postgres:5432/sqlplatform?schema=public

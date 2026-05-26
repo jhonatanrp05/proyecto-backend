@@ -1,30 +1,13 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../../shared/prisma/prisma.service'; 
-import { AssessmentRepository } from './domain/repositories/assesment.repository';
-import { AssessmentPrismaRepository } from './infrastructure/persistence/assessment.prisma-repository';
-
-import { CreateAssessmentUseCase } from './application/use-cases/create-assessment.use-case';
-import { GetAssessmentUseCase } from './application/use-cases/get-assessment.use-case';
-import { GetAllAssessmentsUseCase } from './application/use-cases/get-all-assessments.use-case';
-import { UpdateAssessmentUseCase } from './application/use-cases/update-assessment.use-case';
-import { ValidateSubmissionUseCase } from './application/use-cases/validate-submission.use-case';
-
-
-
-
+import { PrismaModule } from '../../shared/prisma';
 import { AssessmentsController } from './presentation/assessments.controller';
+import { AssessmentsService } from './application/assessments.service';
+import { AssessmentsRepository } from './infrastructure/assessments.repository';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [AssessmentsController],
-  providers: [
-    PrismaService,
-    { provide: AssessmentRepository, useClass: AssessmentPrismaRepository },
-    CreateAssessmentUseCase,
-    GetAssessmentUseCase,
-    GetAllAssessmentsUseCase,
-    UpdateAssessmentUseCase,
-    ValidateSubmissionUseCase,
-  ],
-  exports: [ValidateSubmissionUseCase],
+  providers: [AssessmentsService, AssessmentsRepository],
+  exports: [AssessmentsService],
 })
 export class AssessmentsModule {}

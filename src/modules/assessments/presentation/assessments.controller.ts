@@ -3,121 +3,102 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
-  UseGuards,
-  Delete
+  Query,
 } from '@nestjs/common';
-
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-
+import { ApiProperty } from '@nestjs/swagger';
 import { Roles, CurrentUser } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
-import { RolesGuard } from '../../../shared/guards';
+import { AssessmentsService } from '../application/assessments.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
-import { AssessmentResponseDto } from './dto/assessment-response.dto';
 
-import { CreateAssessmentUseCase } from '../application/use-cases/create-assessment.use-case';
-import { GetAssessmentUseCase } from '../application/use-cases/get-assessment.use-case';
-import { GetAllAssessmentsUseCase } from '../application/use-cases/get-all-assessments.use-case';
-import { UpdateAssessmentUseCase } from '../application/use-cases/update-assessment.use-case';
-import { AssessmentMapper } from '../application/mappers/assessment.mapper';
+class AddChallengeDto {
+  @ApiProperty({ example: 'challenge-uuid' })
+  challengeId: string;
 
+  @ApiProperty({
+    example: 1,
+    description: 'Orden del reto dentro de la evaluación',
+  })
+  order: number;
+}
 
 @ApiTags('assessments')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('assessments')
 export class AssessmentsController {
-  constructor(
-    private readonly createAssessmentUseCase: CreateAssessmentUseCase,
-    private readonly getAssessmentUseCase: GetAssessmentUseCase,
-    private readonly getAllAssessmentsUseCase: GetAllAssessmentsUseCase,
-    private readonly updateAssessmentUseCase: UpdateAssessmentUseCase,
-  ) {}
+  constructor(private readonly assessmentsService: AssessmentsService) {}
 
   @Post()
   @Roles(Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Create assessment [PROFESSOR]',
-    description: 'Allows a professor to create a new SQL assessment'
-  })  
-
-  @ApiResponse({
-    status: 201,
-    description: 'Assessment created successfully',
-    type: AssessmentResponseDto
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Access denied'
-  })
-  async create(
-    @Body() body: CreateAssessmentDto,
-  ): Promise<AssessmentResponseDto> {
-  const assessment = await this.createAssessmentUseCase.execute(body);
-  return AssessmentMapper.toResponse(assessment);  }
+  @ApiOperation({ summary: 'Create assessment [PROFESSOR]' })
+  @ApiResponse({ status: 201, description: 'Assessment created' })
+  create(@Body() dto: CreateAssessmentDto, @CurrentUser('id') userId: string) {
+    return this.assessmentsService.create({ ...dto } as any);
+  }
 
   @Get()
   @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get all assessments [PROFESSOR, STUDENT]',
-    description: 'Returns a list of all available assessments'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Assessments retrieved successfully',
-    type: [AssessmentResponseDto]
-  })
-  async findAll(): Promise<AssessmentResponseDto[]> {
-    const assessments = await this.getAllAssessmentsUseCase.execute();
-    return assessments.map(AssessmentMapper.toResponse);
+  @ApiOperation({ summary: 'List assessments [PROFESSOR, STUDENT]' })
+  @ApiQuery({ name: 'courseId', required: false })
+  findAll(@Query('courseId') courseId?: string) {
+    return this.assessmentsService.findAll(courseId);
   }
 
   @Get(':id')
   @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({
-    summary: 'Get assessment by ID [PROFESSOR, STUDENT]',
-    description: 'Returns detailed information about a specific assessment'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Assessment retrieved successfully',
-    type: AssessmentResponseDto
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Assessment not found'
-  })
-  async findOne(@Param('id') id: string): Promise<AssessmentResponseDto> {
-    const assessment = await this.getAssessmentUseCase.execute(id);
-    return AssessmentMapper.toResponse(assessment);
+  @ApiOperation({ summary: 'Get assessment by ID [PROFESSOR, STUDENT]' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  findOne(@Param('id') id: string) {
+    return this.assessmentsService.findById(id);
   }
 
   @Patch(':id')
   @Roles(Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Update assessment [PROFESSOR]',
-    description: 'Updates assessment information'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Assessment updated successfully',
-    type: AssessmentResponseDto
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Assessment not found'
-  })
-  async update(@Param('id') id: string, @Body() body: UpdateAssessmentDto): Promise<AssessmentResponseDto> {
-    const assessment = await this.updateAssessmentUseCase.execute(id, body);
-    return AssessmentMapper.toResponse(assessment);
-}
+  @ApiOperation({ summary: 'Update assessment [PROFESSOR]' })
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAssessmentDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.assessmentsService.update(id, userId, dto as any);
+  }
+
+  @Delete(':id')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({ summary: 'Delete assessment [PROFESSOR]' })
+  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.assessmentsService.delete(id, userId);
+  }
+
+  @Post(':id/challenges')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({ summary: 'Add challenge to assessment [PROFESSOR]' })
+  addChallenge(@Param('id') id: string, @Body() dto: AddChallengeDto) {
+    return this.assessmentsService.addChallenge(
+      id,
+      dto.challengeId,
+      dto.order ?? 0,
+    );
+  }
+
+  @Delete(':id/challenges/:challengeId')
+  @Roles(Role.PROFESSOR)
+  @ApiOperation({ summary: 'Remove challenge from assessment [PROFESSOR]' })
+  removeChallenge(
+    @Param('id') id: string,
+    @Param('challengeId') challengeId: string,
+  ) {
+    return this.assessmentsService.removeChallenge(id, challengeId);
+  }
 }
