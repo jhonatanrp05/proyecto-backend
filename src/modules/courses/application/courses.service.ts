@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ICourseRepository,
@@ -25,14 +26,42 @@ export class CoursesService {
     return this.courseRepository.findAll();
   }
 
+  findByStudent(studentId: string) {
+    return this.courseRepository.findByStudent(studentId);
+  }
+
   async findById(id: string) {
     const course = await this.courseRepository.findById(id);
     if (!course) throw new NotFoundException(`Course ${id} not found`);
     return course;
   }
 
-  create(dto: CreateCourseDto, professorId: string) {
-    return this.courseRepository.create({ ...dto, professorId });
+  async create(
+    dto: CreateCourseDto,
+    requesterId: string,
+    requesterRole: string,
+  ) {
+    const { professorId: dtoProfessorId, ...courseData } = dto;
+    let professorId = requesterId;
+
+    if (requesterRole === 'ADMIN') {
+      if (!dtoProfessorId) {
+        throw new BadRequestException('professorId is required for ADMIN');
+      }
+      const professor = await this.prisma.user.findUnique({
+        where: { id: dtoProfessorId },
+        select: { role: true },
+      });
+      if (!professor) {
+        throw new NotFoundException(`User ${dtoProfessorId} not found`);
+      }
+      if (professor.role !== 'PROFESSOR') {
+        throw new BadRequestException('Assigned user must be a PROFESSOR');
+      }
+      professorId = dtoProfessorId;
+    }
+
+    return this.courseRepository.create({ ...courseData, professorId });
   }
 
   async update(
@@ -67,6 +96,15 @@ export class CoursesService {
         'Only the course professor can enroll students',
       );
     }
+    const student = await this.prisma.user.findUnique({
+      where: { id: studentId },
+      select: { role: true },
+    });
+    if (!student) throw new NotFoundException(`User ${studentId} not found`);
+    if (student.role !== 'STUDENT') {
+      throw new BadRequestException('Only STUDENT users can be enrolled');
+    }
+
     const already = await this.courseRepository.isStudentEnrolled(
       courseId,
       studentId,
