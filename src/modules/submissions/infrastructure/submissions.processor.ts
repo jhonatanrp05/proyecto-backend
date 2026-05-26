@@ -5,6 +5,7 @@ import { PrismaService } from '../../../shared/prisma';
 import { SUBMISSIONS_QUEUE } from '../application/submissions.service';
 import { SqlRunnerService } from './sql-runner.service';
 import { SqlAnalyzerService } from '../../recommendations/application/sql-analyzer.service';
+import { AiRecommendationService } from '../../recommendations/infrastructure/services/ai-recommendation.service';
 
 interface EvaluateJobData {
   submissionId: string;
@@ -17,7 +18,11 @@ export class SubmissionsProcessor extends WorkerHost {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     private readonly sqlRunner: SqlRunnerService,
+    // Solo se usa como insumo del score (criterio "Uso adecuado de SQL" del Módulo 3).
+    // No se usa para producir la recomendación que ve el estudiante.
     private readonly sqlAnalyzer: SqlAnalyzerService,
+    // Productor único de recomendaciones (Módulo 5, Opción 2 del enunciado).
+    private readonly aiService: AiRecommendationService,
   ) {
     super();
   }
@@ -121,8 +126,8 @@ export class SubmissionsProcessor extends WorkerHost {
         },
       ];
 
-      // Análisis estático: alimenta tanto el score (criterio "Uso adecuado de SQL")
-      // como la recomendación que se persiste a continuación.
+      // Análisis estático: alimenta exclusivamente el score del Módulo 3
+      // (criterio "Uso adecuado de SQL"). No se usa como recomendación al estudiante.
       const analysis = this.sqlAnalyzer.analyze({
         query: submission.query,
         ddlScript: challenge.schema.ddlScript,
@@ -161,10 +166,18 @@ export class SubmissionsProcessor extends WorkerHost {
         tests,
       );
 
-      // Persistir la recomendación con el análisis ya calculado.
-      await this.saveRecommendation(submissionId, analysis).catch((err) =>
+      // Producir la recomendación llamando al modelo de IA (Opción 2 del enunciado).
+      // Si falla, se loguea y el submission queda evaluado sin recomendación.
+      await this.generateAiRecommendation(
+        submissionId,
+        submission.query,
+        challenge.schema.ddlScript,
+        runnerOutput.executionTimeMs,
+        finalStatus,
+        runnerOutput.executionPlan,
+      ).catch((err) =>
         this.logger.warn(
-          `Recomendaciones no persistidas para ${submissionId}: ${err?.message}`,
+          `Recomendación de IA no generada para ${submissionId}: ${err?.message}`,
         ),
       );
 
@@ -181,29 +194,35 @@ export class SubmissionsProcessor extends WorkerHost {
     }
   }
 
-  private async saveRecommendation(
+  private async generateAiRecommendation(
     submissionId: string,
-    analysis: {
-      explanation: string;
-      suggestions: string[];
-      indexSuggestions: string[];
-      rewrittenQuery?: string;
-    },
+    query: string,
+    schemaDdl: string,
+    executionTimeMs: number,
+    evaluationStatus: string,
+    executionPlan?: string,
   ): Promise<void> {
+    const aiFeedback = await this.aiService.generateFeedback(
+      query,
+      schemaDdl,
+      executionTimeMs,
+      evaluationStatus,
+      executionPlan,
+    );
     await this.prisma.recommendation.upsert({
       where: { submissionId },
       create: {
         submissionId,
-        explanation: analysis.explanation,
-        suggestions: analysis.suggestions,
-        indexSuggestions: analysis.indexSuggestions,
-        rewrittenQuery: analysis.rewrittenQuery,
+        explanation: aiFeedback.explanation,
+        suggestions: aiFeedback.suggestions,
+        indexSuggestions: aiFeedback.indexSuggestions,
+        rewrittenQuery: aiFeedback.rewrittenQuery,
       },
       update: {
-        explanation: analysis.explanation,
-        suggestions: analysis.suggestions,
-        indexSuggestions: analysis.indexSuggestions,
-        rewrittenQuery: analysis.rewrittenQuery,
+        explanation: aiFeedback.explanation,
+        suggestions: aiFeedback.suggestions,
+        indexSuggestions: aiFeedback.indexSuggestions,
+        rewrittenQuery: aiFeedback.rewrittenQuery,
       },
     });
   }

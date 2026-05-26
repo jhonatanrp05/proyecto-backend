@@ -20,6 +20,9 @@ export interface SqlRunnerOutput {
   rows: Record<string, unknown>[];
   executionTimeMs: number;
   errorMessage?: string;
+  // Plan de ejecución capturado con EXPLAIN ANALYZE tras la corrida principal
+  // (solo se intenta cuando status === 'OK'). Opcional según el enunciado.
+  executionPlan?: string;
 }
 
 @Injectable()
@@ -89,12 +92,21 @@ export class SqlRunnerService {
         ]);
         const executionTimeMs = Date.now() - start;
 
+        // EXPLAIN ANALYZE en una transacción con ROLLBACK para no modificar datos
+        // si la consulta es UPDATE/DELETE/INSERT. Best-effort: si falla no se
+        // propaga, simplemente no se incluye el plan en la respuesta.
+        const executionPlan = await this.captureExplainPlan(
+          client,
+          input.studentQuery,
+        );
+
         await client.end();
 
         return {
           status: 'OK',
           rows: (result as any).rows ?? [],
           executionTimeMs,
+          executionPlan,
         };
       } catch (err: any) {
         await client.end().catch(() => {});
@@ -119,6 +131,28 @@ export class SqlRunnerService {
       if (container) {
         container.stop().catch(() => {});
       }
+    }
+  }
+
+  private async captureExplainPlan(
+    client: Client,
+    studentQuery: string,
+  ): Promise<string | undefined> {
+    try {
+      const trimmed = studentQuery.trim().replace(/;\s*$/, '');
+      await client.query('BEGIN');
+      const explain = await client.query(
+        `EXPLAIN (ANALYZE, FORMAT TEXT) ${trimmed}`,
+      );
+      await client.query('ROLLBACK');
+      const lines = (explain.rows as Array<Record<string, string>>).map(
+        (r) => r['QUERY PLAN'],
+      );
+      return lines.join('\n');
+    } catch (err: any) {
+      await client.query('ROLLBACK').catch(() => {});
+      this.logger.debug(`EXPLAIN ANALYZE no disponible: ${err?.message}`);
+      return undefined;
     }
   }
 
