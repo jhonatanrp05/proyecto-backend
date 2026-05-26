@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateSubmissionDto {
   @ApiProperty({
@@ -25,4 +25,13 @@ export class CreateSubmissionDto {
   @IsString()
   @IsNotEmpty()
   engine: string;
+
+  @ApiPropertyOptional({
+    description:
+      'ID del intento de evaluación activo cuando la solución se envía dentro de una evaluación',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @IsUUID('all')
+  @IsOptional()
+  assessmentAttemptId?: string;
 }

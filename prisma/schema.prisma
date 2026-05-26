@@ -156,6 +156,9 @@ model Submission {
   challengeId String
   challenge   Challenge @relation(fields: [challengeId], references: [id])
 
+  assessmentAttemptId String?
+  assessmentAttempt   AssessmentAttempt? @relation(fields: [assessmentAttemptId], references: [id], onDelete: SetNull)
+
   result         SubmissionResult?
   recommendation Recommendation?
 
@@ -234,6 +237,8 @@ model AssessmentAttempt {
   assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   studentId    String
   student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  submissions Submission[]
 
   @@map("assessment_attempts")
 }

@@ -11,6 +11,7 @@ export class SubmissionRepository implements ISubmissionRepository {
     challengeId: string;
     query: string;
     engine: string;
+    assessmentAttemptId?: string;
   }): Promise<any> {
     return this.prisma.submission.create({
       data: {
@@ -18,6 +19,7 @@ export class SubmissionRepository implements ISubmissionRepository {
         challengeId: data.challengeId,
         query: data.query,
         engine: data.engine,
+        assessmentAttemptId: data.assessmentAttemptId,
       },
     });
   }
@@ -27,6 +29,14 @@ export class SubmissionRepository implements ISubmissionRepository {
       where: { id },
       include: {
         result: true,
+        assessmentAttempt: {
+          select: {
+            id: true,
+            assessmentId: true,
+            startedAt: true,
+            finishedAt: true,
+          },
+        },
         challenge: {
           select: {
             id: true,
@@ -57,6 +67,14 @@ export class SubmissionRepository implements ISubmissionRepository {
       },
       include: {
         result: true,
+        assessmentAttempt: {
+          select: {
+            id: true,
+            assessmentId: true,
+            startedAt: true,
+            finishedAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

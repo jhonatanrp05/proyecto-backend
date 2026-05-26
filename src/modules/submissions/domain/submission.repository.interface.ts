@@ -4,6 +4,7 @@ export interface ISubmissionRepository {
     challengeId: string;
     query: string;
     engine: string;
+    assessmentAttemptId?: string;
   }): Promise<any>;
 
   findById(id: string): Promise<any | null>;

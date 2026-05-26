@@ -63,6 +63,12 @@ export class SubmissionsService {
       );
     }
 
+    await this.validateAssessmentContext(
+      dto.assessmentAttemptId,
+      dto.challengeId,
+      studentId,
+    );
+
     // guardar el submission en la BD con estado "QUEUED"
     let submission: any;
     try {
@@ -71,6 +77,7 @@ export class SubmissionsService {
         challengeId: dto.challengeId,
         query: dto.query,
         engine: dto.engine,
+        assessmentAttemptId: dto.assessmentAttemptId,
       });
     } catch (err: any) {
       if (err?.code === 'P2003') {
@@ -87,6 +94,116 @@ export class SubmissionsService {
     });
 
     return submission;
+  }
+
+  private async validateAssessmentContext(
+    assessmentAttemptId: string | undefined,
+    challengeId: string,
+    studentId: string,
+  ): Promise<void> {
+    const now = new Date();
+
+    if (!assessmentAttemptId) {
+      const activeAssessment = await this.prisma.assessmentChallenge.findFirst({
+        where: {
+          challengeId,
+          assessment: {
+            startDate: { lte: now },
+            endDate: { gte: now },
+            course: {
+              students: {
+                some: { studentId },
+              },
+            },
+          },
+        },
+        select: { assessmentId: true },
+      });
+
+      if (activeAssessment) {
+        throw new ForbiddenException(
+          'Este reto está en una evaluación activa. Debes enviar la solución con assessmentAttemptId.',
+        );
+      }
+
+      return;
+    }
+
+    await this.validateAssessmentAttempt(
+      assessmentAttemptId,
+      challengeId,
+      studentId,
+      now,
+    );
+  }
+
+  private async validateAssessmentAttempt(
+    assessmentAttemptId: string,
+    challengeId: string,
+    studentId: string,
+    now: Date,
+  ): Promise<void> {
+    const attempt = await this.prisma.assessmentAttempt.findUnique({
+      where: { id: assessmentAttemptId },
+      include: {
+        assessment: {
+          select: {
+            id: true,
+            startDate: true,
+            endDate: true,
+            duration: true,
+            challenges: {
+              select: { challengeId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!attempt) {
+      throw new NotFoundException(
+        `AssessmentAttempt con ID "${assessmentAttemptId}" no existe`,
+      );
+    }
+
+    if (attempt.studentId !== studentId) {
+      throw new ForbiddenException(
+        'No puedes enviar soluciones con un intento de otro estudiante',
+      );
+    }
+
+    if (attempt.finishedAt) {
+      throw new ForbiddenException(
+        'Este intento ya fue finalizado y no acepta más submissions',
+      );
+    }
+
+    if (
+      now < attempt.assessment.startDate ||
+      now > attempt.assessment.endDate
+    ) {
+      throw new ForbiddenException(
+        'La evaluación asociada a este intento no está activa en este momento',
+      );
+    }
+
+    const attemptDeadline = new Date(
+      attempt.startedAt.getTime() + attempt.assessment.duration * 60_000,
+    );
+    if (now > attemptDeadline) {
+      throw new ForbiddenException(
+        'El tiempo máximo permitido para este intento ya expiró',
+      );
+    }
+
+    const challengeIncluded = attempt.assessment.challenges.some(
+      (assessmentChallenge) => assessmentChallenge.challengeId === challengeId,
+    );
+    if (!challengeIncluded) {
+      throw new BadRequestException(
+        'El reto enviado no pertenece a la evaluación asociada al intento',
+      );
+    }
   }
 
   async findAll(
