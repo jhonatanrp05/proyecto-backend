@@ -24,6 +24,14 @@ export class UserRepository implements IUserRepository {
     return this.prisma.user.findUnique({ where: { id }, select: SELECT_SAFE });
   }
 
+  findByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  create(data: { email: string; name: string; password: string; role: Role }) {
+    return this.prisma.user.create({ data, select: SELECT_SAFE });
+  }
+
   update(
     id: string,
     data: Partial<{ name: string; email: string; role: Role }>,
