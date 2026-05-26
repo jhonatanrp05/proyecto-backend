@@ -15,10 +15,10 @@ export class GetCourseReportUseCase {
         COUNT(s.id)                                                     AS total_submissions,
         SUM(CASE WHEN s.status = 'ACCEPTED' THEN 1 ELSE 0 END)         AS accepted
       FROM users u
-      JOIN submissions s          ON s.student_id    = u.id
-      JOIN submission_results sr  ON sr.submission_id = s.id
-      JOIN challenges c           ON c.id             = s.challenge_id
-      WHERE c.course_id = ${courseId}
+      JOIN submissions s          ON s."studentId"    = u.id
+      JOIN submission_results sr  ON sr."submissionId" = s.id
+      JOIN challenges c           ON c.id              = s."challengeId"
+      WHERE c."courseId" = ${courseId}
       GROUP BY u.id, u.email, u.name
       ORDER BY avg_score DESC
     `;
