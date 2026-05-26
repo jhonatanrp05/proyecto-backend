@@ -4,14 +4,17 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AiRecommendationService {
-  private readonly openai: OpenAI;
+  private openai: OpenAI | null = null;
   private readonly logger = new Logger(AiRecommendationService.name);
 
-  constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY') || process.env.OPENAI_API_KEY;
-    this.openai = new OpenAI({
-      apiKey: apiKey,
-    });
+  constructor(private readonly configService: ConfigService) {}
+
+  private getClient(): OpenAI {
+    if (!this.openai) {
+      const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+      this.openai = new OpenAI({ apiKey: apiKey ?? 'no-key' });
+    }
+    return this.openai;
   }
 
   async generateFeedback(
@@ -27,7 +30,7 @@ export class AiRecommendationService {
   }> {
     try {
       this.logger.log('Solicitando análisis al LLM...');
-      const response = await this.openai.chat.completions.create({
+      const response = await this.getClient().chat.completions.create({
         model: 'gpt-4o', // Puedes cambiarlo a gpt-3.5-turbo o el modelo que prefieras
         response_format: { type: 'json_object' },
         temperature: 0.2, // Temperatura baja para respuestas más deterministas y analíticas
