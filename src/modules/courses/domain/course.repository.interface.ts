@@ -2,6 +2,7 @@ export interface ICourseRepository {
   findAll(): Promise<any[]>;
   findById(id: string): Promise<any | null>;
   findByProfessor(professorId: string): Promise<any[]>;
+  findByStudent(studentId: string): Promise<any[]>;
   create(data: {
     name: string;
     code: string;

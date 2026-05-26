@@ -42,6 +42,13 @@ export class CourseRepository implements ICourseRepository {
     });
   }
 
+  findByStudent(studentId: string) {
+    return this.prisma.course.findMany({
+      where: { students: { some: { studentId } } },
+      select: COURSE_SELECT,
+    });
+  }
+
   create(data: {
     name: string;
     code: string;
