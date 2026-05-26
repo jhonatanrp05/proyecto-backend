@@ -155,7 +155,28 @@ export class SqlRunnerService {
     }
   }
 
-<<<<<<< HEAD
+  // Descarga la imagen del runner si no está presente, evitando que la primera
+  // evaluación falle en un entorno limpio.
+  private async ensureImage(): Promise<void> {
+    const images = await this.docker.listImages({
+      filters: { reference: [this.IMAGE] },
+    });
+    if (images.length > 0) return;
+
+    this.logger.log(`Descargando imagen ${this.IMAGE}...`);
+    await new Promise<void>((resolve, reject) => {
+      this.docker.pull(
+        this.IMAGE,
+        (err: any, stream: NodeJS.ReadableStream) => {
+          if (err) return reject(err);
+          this.docker.modem.followProgress(stream, (e: any) =>
+            e ? reject(e) : resolve(),
+          );
+        },
+      );
+    });
+  }
+
   private async captureExplainPlan(
     client: Client,
     studentQuery: string,
@@ -176,25 +197,6 @@ export class SqlRunnerService {
       this.logger.debug(`EXPLAIN ANALYZE no disponible: ${err?.message}`);
       return undefined;
     }
-=======
-  // Descarga la imagen del runner si no está presente, evitando que la primera
-  // evaluación falle en un entorno limpio.
-  private async ensureImage(): Promise<void> {
-    const images = await this.docker.listImages({
-      filters: { reference: [this.IMAGE] },
-    });
-    if (images.length > 0) return;
-
-    this.logger.log(`Descargando imagen ${this.IMAGE}...`);
-    await new Promise<void>((resolve, reject) => {
-      this.docker.pull(this.IMAGE, (err: any, stream: NodeJS.ReadableStream) => {
-        if (err) return reject(err);
-        this.docker.modem.followProgress(stream, (e: any) =>
-          e ? reject(e) : resolve(),
-        );
-      });
-    });
->>>>>>> 3bcffb30a4b6dfae3cfb0f85368f0b0c023a40de
   }
 
   private async waitForPostgres(
