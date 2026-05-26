@@ -3,11 +3,14 @@ import {
   Inject,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../domain/user.repository.interface';
+import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { PrismaService } from '../../../shared/prisma';
 
@@ -21,6 +24,14 @@ export class UsersService {
 
   findAll() {
     return this.userRepository.findAll();
+  }
+
+  async create(dto: CreateUserDto) {
+    const existing = await this.userRepository.findByEmail(dto.email);
+    if (existing) throw new ConflictException('Email already registered');
+
+    const password = await bcrypt.hash(dto.password, 10);
+    return this.userRepository.create({ ...dto, password });
   }
 
   async findById(id: string) {

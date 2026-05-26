@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  Post,
   Patch,
   Delete,
   Body,
@@ -19,6 +20,7 @@ import { Roles, CurrentUser } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
 import { RolesGuard } from '../../../shared/guards';
 import { UsersService } from '../application/users.service';
+import { CreateUserDto } from '../application/dtos/create-user.dto';
 import { UpdateUserDto } from '../application/dtos/update-user.dto';
 
 @ApiTags('users')
@@ -27,6 +29,17 @@ import { UpdateUserDto } from '../application/dtos/update-user.dto';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Create a user [ADMIN]' })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+  })
+  create(@Body() dto: CreateUserDto) {
+    return this.usersService.create(dto);
+  }
 
   @Get()
   @Roles(Role.ADMIN)
