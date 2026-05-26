@@ -17,12 +17,18 @@ import { StringValue } from 'ms'; // <- importar el tipo
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: config.get<string>('JWT_EXPIRES_IN', '7d') as StringValue,
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const expiresIn =
+          config.get<string>('JWT_EXPIRES_IN') ??
+          config.get<string>('JWT_EXPIRATION', '7d');
+
+        return {
+          secret: config.get<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn: expiresIn as StringValue,
+          },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
