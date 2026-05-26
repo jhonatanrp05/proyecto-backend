@@ -1,9 +1,7 @@
 import {
   Controller,
   Get,
-  Post,
   Param,
-  Body,
 } from '@nestjs/common';
 
 import {
@@ -11,30 +9,28 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 
-import { Roles, CurrentUser } from '../../../shared/decorators';
+import { Roles } from '../../../shared/decorators';
 import { Role } from '../../../shared/constants';
+import { GenerateRecommendationUseCase } from '../application/use-cases/generate-recommendation.use-case';
+import { RecommendationResponseDto } from './dto/recommendation-response.dto';
 
 @ApiTags('recommendations')
 @ApiBearerAuth()
 @Controller('submissions')
 export class RecommendationsController {
+  constructor(private readonly generateRecommendationUseCase: GenerateRecommendationUseCase) {}
 
   @Get(':id/recommendations')
   @Roles(Role.STUDENT, Role.PROFESSOR)
-  @ApiOperation({
-    summary: 'Get submission recommendations [STUDENT, PROFESSOR]',
-    description: 'Returns optimization and learning recommendations for a submission'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Recommendations retrieved successfully'
-  })
-  getRecommendations(
+  @ApiOperation({ summary: 'Obtener recomendaciones de IA' })
+  @ApiParam({ name: 'id', description: 'ID de la submission' })
+  @ApiResponse({ status: 200, type: RecommendationResponseDto, description: 'Recomendaciones devueltas exitosamente' })
+  async getRecommendations(
     @Param('id') id: string
-  ) {
-    return {};
+  ): Promise<RecommendationResponseDto> {
+    return await this.generateRecommendationUseCase.execute(id);
   }
-
 }
