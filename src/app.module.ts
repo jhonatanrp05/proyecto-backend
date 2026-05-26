@@ -12,6 +12,8 @@ import { CoursesModule } from './modules/courses/courses.module';
 import { AssessmentsModule } from './modules/assessments/assessments.module';
 import { ChallengesModule } from './modules/challenges/challenges.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
+import { ReportsModule } from './modules/reports/reports.module';
+
 
 @Module({
   imports: [
@@ -39,7 +41,7 @@ import { SubmissionsModule } from './modules/submissions/submissions.module';
     ChallengesModule,
     AssessmentsModule,
     SubmissionsModule,
-    
+    ReportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
