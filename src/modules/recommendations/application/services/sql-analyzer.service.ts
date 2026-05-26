@@ -58,6 +58,15 @@ export class SqlAnalyzerService {
       const asts = Array.isArray(astOrAsts) ? astOrAsts : [astOrAsts];
 
       for (const ast of asts as any[]) {
+        if (['select', 'update', 'delete'].includes(ast.type)) {
+          if (!ast.where) {
+            issues.push({
+              issue: `Ausencia de cláusula WHERE en una consulta ${ast.type.toUpperCase()} (puede causar full table scan o modificar registros masivamente)`,
+              severity: 'warning',
+            });
+          }
+        }
+
         if (ast.type === 'select') {
           // Check for SELECT *
           if (this.hasSelectStar(ast)) {
