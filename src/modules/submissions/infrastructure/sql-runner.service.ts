@@ -7,6 +7,11 @@ export interface SqlRunnerInput {
   seedScript: string;
   studentQuery: string;
   timeLimitMs: number;
+  // Consulta de referencia opcional (la "solución del profesor"). Si viene, se
+  // ejecuta como superusuario en el mismo sandbox tras DDL+seed, y sus filas se
+  // devuelven como `referenceRows` para que el processor las use como fuente de
+  // verdad al comparar (evita mismatches de tipos DECIMAL/DATE vs JSON estático).
+  referenceQuery?: string;
 }
 
 export type SqlRunnerStatus =
@@ -18,10 +23,9 @@ export type SqlRunnerStatus =
 export interface SqlRunnerOutput {
   status: SqlRunnerStatus;
   rows: Record<string, unknown>[];
+  referenceRows?: Record<string, unknown>[];
   executionTimeMs: number;
   errorMessage?: string;
-  // Plan de ejecución capturado con EXPLAIN ANALYZE tras la corrida principal
-  // (solo se intenta cuando status === 'OK'). Opcional según el enunciado.
   executionPlan?: string;
 }
 
@@ -36,9 +40,7 @@ export class SqlRunnerService {
 
   async run(input: SqlRunnerInput): Promise<SqlRunnerOutput> {
     const containerName = `sql-eval-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    // Si RUNNER_NETWORK está definida (caso docker-compose), el worker y el runner
-    // se hablan por la red interna de Docker y no se expone puerto al host. Si no,
-    // se mantiene el comportamiento de port-binding al host (worker corriendo nativo).
+
     const runnerNetwork = process.env.RUNNER_NETWORK;
     const useDockerNetwork = Boolean(runnerNetwork);
     const hostPort = useDockerNetwork ? 0 : await this.getFreePort();
@@ -62,10 +64,10 @@ export class SqlRunnerService {
           ...(useDockerNetwork
             ? { NetworkMode: runnerNetwork }
             : {
-                PortBindings: {
-                  '5432/tcp': [{ HostPort: String(hostPort) }],
-                },
-              }),
+              PortBindings: {
+                '5432/tcp': [{ HostPort: String(hostPort) }],
+              },
+            }),
         },
         ExposedPorts: { '5432/tcp': {} },
       });
@@ -86,6 +88,30 @@ export class SqlRunnerService {
         await client.query(input.ddlScript);
         if (input.seedScript.trim()) {
           await client.query(input.seedScript);
+        }
+
+        // Ejecuta la consulta de referencia como superusuario tras DDL+seed.
+        // Sus filas son la fuente de verdad para evaluar al estudiante, evitando
+        // depender de un JSON estático que puede desincronizarse de los datos
+        // sembrados. Un fallo aquí indica un challenge mal configurado, no un
+        // fallo del estudiante: se propaga como RUNTIME_ERROR del runner.
+        let referenceRows: Record<string, unknown>[] | undefined;
+        if (input.referenceQuery?.trim()) {
+          try {
+            const refResult = await client.query(input.referenceQuery);
+            referenceRows = (refResult as any).rows ?? [];
+          } catch (refErr: any) {
+            await client.end().catch(() => {});
+            this.logger.error(
+              `Reference query falló: ${refErr?.message}`,
+            );
+            return {
+              status: 'RUNTIME_ERROR',
+              rows: [],
+              executionTimeMs: 0,
+              errorMessage: `Reference query falló: ${refErr?.message}`,
+            };
+          }
         }
 
         // El DDL/seed se cargan como superusuario, pero la consulta del estudiante
@@ -126,11 +152,12 @@ export class SqlRunnerService {
         return {
           status: 'OK',
           rows: (result as any).rows ?? [],
+          referenceRows,
           executionTimeMs,
           executionPlan,
         };
       } catch (err: any) {
-        await client.end().catch(() => {});
+        await client.end().catch(() => { });
         return this.classifyError(err);
       }
     } catch (err: any) {
@@ -150,7 +177,7 @@ export class SqlRunnerService {
       };
     } finally {
       if (container) {
-        container.stop().catch(() => {});
+        container.stop().catch(() => { });
       }
     }
   }
@@ -193,7 +220,7 @@ export class SqlRunnerService {
       );
       return lines.join('\n');
     } catch (err: any) {
-      await client.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch(() => { });
       this.logger.debug(`EXPLAIN ANALYZE no disponible: ${err?.message}`);
       return undefined;
     }

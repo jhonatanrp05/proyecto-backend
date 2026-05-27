@@ -19,6 +19,7 @@ import { Role } from '../../../shared/constants/roles.enum';
 import { CurrentUser } from '../../../shared/decorators';
 import { SubmissionsService } from '../application/submissions.service';
 import { CreateSubmissionDto } from '../application/dtos/create-submission.dto';
+import { PreviewSubmissionDto } from '../application/dtos/preview-submission.dto';
 
 @ApiTags('Submissions')
 @ApiBearerAuth()
@@ -39,6 +40,21 @@ export class SubmissionsController {
     @CurrentUser() user: { id: string },
   ) {
     return this.submissionsService.create(dto, user.id);
+  }
+
+  @Post('preview')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.STUDENT)
+  @ApiOperation({
+    summary: 'Ejecutar consulta en sandbox sin persistirla [STUDENT]',
+    description:
+      'Corre la consulta del estudiante contra el sandbox del reto (DDL + seed) y retorna filas y tiempo de ejecución. No guarda submission ni evalúa el resultado.',
+  })
+  preview(
+    @Body() dto: PreviewSubmissionDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.submissionsService.previewQuery(dto, user.id);
   }
 
   @Get()

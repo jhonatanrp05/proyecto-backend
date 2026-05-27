@@ -11,6 +11,19 @@ interface EvaluateJobData {
   submissionId: string;
 }
 
+interface PreviewJobData {
+  challengeId: string;
+  studentId: string;
+  query: string;
+}
+
+interface PreviewJobResult {
+  status: 'OK' | 'TIMEOUT' | 'SYNTAX_ERROR' | 'RUNTIME_ERROR';
+  rows: Record<string, unknown>[];
+  executionTimeMs: number;
+  errorMessage?: string;
+}
+
 @Processor(SUBMISSIONS_QUEUE)
 export class SubmissionsProcessor extends WorkerHost {
   private readonly logger = new Logger(SubmissionsProcessor.name);
@@ -27,7 +40,55 @@ export class SubmissionsProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<EvaluateJobData>): Promise<void> {
+  async process(
+    job: Job<EvaluateJobData | PreviewJobData>,
+  ): Promise<PreviewJobResult | void> {
+    if (job.name === 'preview') {
+      return this.processPreview(job as Job<PreviewJobData>);
+    }
+    return this.processEvaluate(job as Job<EvaluateJobData>);
+  }
+
+  private async processPreview(
+    job: Job<PreviewJobData>,
+  ): Promise<PreviewJobResult> {
+    const { challengeId, query } = job.data;
+    this.logger.log(`Preview job para challenge ${challengeId}`);
+
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: challengeId },
+      select: {
+        timeLimit: true,
+        schema: { select: { ddlScript: true } },
+        seedData: { select: { insertScript: true } },
+      },
+    });
+
+    if (!challenge?.schema) {
+      return {
+        status: 'RUNTIME_ERROR',
+        rows: [],
+        executionTimeMs: 0,
+        errorMessage: 'El reto no tiene esquema configurado',
+      };
+    }
+
+    const runnerOutput = await this.sqlRunner.run({
+      ddlScript: challenge.schema.ddlScript,
+      seedScript: challenge.seedData?.insertScript ?? '',
+      studentQuery: query,
+      timeLimitMs: challenge.timeLimit,
+    });
+
+    return {
+      status: runnerOutput.status,
+      rows: runnerOutput.rows,
+      executionTimeMs: runnerOutput.executionTimeMs,
+      errorMessage: runnerOutput.errorMessage,
+    };
+  }
+
+  private async processEvaluate(job: Job<EvaluateJobData>): Promise<void> {
     const { submissionId } = job.data;
     this.logger.log(`Procesando submission ${submissionId}`);
 
@@ -74,6 +135,7 @@ export class SubmissionsProcessor extends WorkerHost {
         seedScript: challenge.seedData?.insertScript ?? '',
         studentQuery: submission.query,
         timeLimitMs: challenge.timeLimit,
+        referenceQuery: challenge.expectedResult.query,
       });
 
       if (runnerOutput.status === 'TIMEOUT') {
@@ -109,11 +171,12 @@ export class SubmissionsProcessor extends WorkerHost {
         return;
       }
 
-      // Compare results
-      const expected = challenge.expectedResult.outputJson as Record<
-        string,
-        unknown
-      >[];
+      // Fuente de verdad: filas devueltas por la reference query del profesor
+      // ejecutada en el mismo sandbox. Caemos al outputJson estático sólo si el
+      // runner no devolvió referenceRows (challenge legacy sin reference query).
+      const expected =
+        runnerOutput.referenceRows ??
+        (challenge.expectedResult.outputJson as Record<string, unknown>[]);
       const actual = runnerOutput.rows;
       const resultCorrect = this.compareResults(expected, actual);
 
@@ -266,10 +329,9 @@ export class SubmissionsProcessor extends WorkerHost {
       rows
         .map((r) =>
           Object.fromEntries(
-            Object.entries(r).map(([k, v]) => [
-              k.toLowerCase(),
-              String(v ?? ''),
-            ]),
+            Object.keys(r)
+              .sort()
+              .map((k) => [k.toLowerCase(), String(r[k] ?? '')]),
           ),
         )
         .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));

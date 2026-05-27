@@ -18,5 +18,9 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "ignoreDeprecations": "5.0"
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "schema-frontend"
+  ]
 }

@@ -3,7 +3,9 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
+  RequestTimeoutException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -13,6 +15,14 @@ import {
   SUBMISSION_REPOSITORY,
 } from '../domain/submission.repository.interface';
 import { CreateSubmissionDto } from './dtos/create-submission.dto';
+import { PreviewSubmissionDto } from './dtos/preview-submission.dto';
+
+export interface PreviewQueryResult {
+  status: 'OK' | 'TIMEOUT' | 'SYNTAX_ERROR' | 'RUNTIME_ERROR';
+  rows: Array<Record<string, unknown>>;
+  executionTimeMs: number;
+  errorMessage?: string;
+}
 
 // Nombre de la cola
 //debe coincidir exactamente con el worker
@@ -224,6 +234,83 @@ export class SubmissionsService {
     }
     // ADMIN
     return this.submissionRepository.findMany({ challengeId });
+  }
+
+  async previewQuery(
+    dto: PreviewSubmissionDto,
+    studentId: string,
+  ): Promise<PreviewQueryResult> {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: dto.challengeId },
+      select: { id: true, status: true, courseId: true, timeLimit: true },
+    });
+
+    if (!challenge) {
+      throw new BadRequestException(
+        `El reto con ID "${dto.challengeId}" no existe`,
+      );
+    }
+
+    if (challenge.status !== 'published') {
+      throw new ForbiddenException(
+        'Solo se puede ejecutar preview en retos publicados',
+      );
+    }
+
+    const enrollment = await this.prisma.courseStudent.findUnique({
+      where: {
+        courseId_studentId: { courseId: challenge.courseId, studentId },
+      },
+      select: { courseId: true },
+    });
+
+    if (!enrollment) {
+      throw new ForbiddenException(
+        'No estás inscrito en el curso de este reto',
+      );
+    }
+
+    const job = await this.submissionsQueue.add('preview', {
+      challengeId: dto.challengeId,
+      studentId,
+      query: dto.query,
+    });
+
+    // El worker procesa el job y deja el resultado en job.returnvalue.
+    // Polling cada 100ms: el preview suele tomar 1-3s por el spin-up del
+    // contenedor postgres de evaluación.
+    const pollIntervalMs = 100;
+    const maxWaitMs = Math.max(challenge.timeLimit, 5000) + 30_000;
+    const deadline = Date.now() + maxWaitMs;
+
+    while (Date.now() < deadline) {
+      const state = await job.getState();
+      if (state === 'completed') {
+        // job.returnvalue es un snapshot del momento de creación; releemos el
+        // job desde Redis para obtener el valor devuelto por el processor.
+        const refreshed = await this.submissionsQueue.getJob(job.id!);
+        const result = (refreshed?.returnvalue ?? null) as
+          | PreviewQueryResult
+          | null;
+        if (!result) {
+          throw new InternalServerErrorException(
+            'El worker no devolvió un resultado de preview',
+          );
+        }
+        return result;
+      }
+      if (state === 'failed') {
+        const refreshed = await this.submissionsQueue.getJob(job.id!);
+        throw new InternalServerErrorException(
+          `Preview falló en el worker: ${refreshed?.failedReason ?? 'razón desconocida'}`,
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    throw new RequestTimeoutException(
+      'El preview tomó más tiempo del esperado',
+    );
   }
 
   async findById(

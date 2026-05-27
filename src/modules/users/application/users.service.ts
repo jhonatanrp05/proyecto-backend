@@ -9,6 +9,7 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../domain/user.repository.interface';
+import { Role } from '../../../shared/constants';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 
@@ -21,6 +22,10 @@ export class UsersService {
 
   findAll() {
     return this.userRepository.findAll();
+  }
+
+  findStudents() {
+    return this.userRepository.findByRole(Role.STUDENT);
   }
 
   async create(dto: CreateUserDto) {

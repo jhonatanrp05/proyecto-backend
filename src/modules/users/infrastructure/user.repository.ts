@@ -20,6 +20,10 @@ export class UserRepository implements IUserRepository {
     return this.prisma.user.findMany({ select: SELECT_SAFE });
   }
 
+  findByRole(role: Role) {
+    return this.prisma.user.findMany({ where: { role }, select: SELECT_SAFE });
+  }
+
   findById(id: string) {
     return this.prisma.user.findUnique({ where: { id }, select: SELECT_SAFE });
   }
