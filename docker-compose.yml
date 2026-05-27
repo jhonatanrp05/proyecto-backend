@@ -24,6 +24,7 @@ services:
     environment:
       DATABASE_URL: postgresql://admin:secret@postgres:5432/sqlplatform?schema=public
       REDIS_HOST: redis
+      CORS_ORIGINS: http://localhost:3001,http://127.0.0.1:3001,https://schema-frontend-hazel.vercel.app
     depends_on:
       postgres:
         condition: service_healthy
