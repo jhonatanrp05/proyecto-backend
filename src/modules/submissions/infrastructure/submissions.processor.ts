@@ -11,6 +11,16 @@ interface EvaluateJobData {
   submissionId: string;
 }
 
+interface PreviewJobData {
+  ddlScript: string;
+  seedScript: string;
+  studentQuery: string;
+  timeLimitMs: number;
+}
+
+// Máximo de filas que se devuelven en un preview para no saturar la respuesta.
+const PREVIEW_MAX_ROWS = 100;
+
 @Processor(SUBMISSIONS_QUEUE)
 export class SubmissionsProcessor extends WorkerHost {
   private readonly logger = new Logger(SubmissionsProcessor.name);
@@ -27,7 +37,34 @@ export class SubmissionsProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<EvaluateJobData>): Promise<void> {
+  async process(job: Job): Promise<unknown> {
+    // El job de preview ejecuta la consulta y devuelve las filas, sin persistir nada.
+    if (job.name === 'preview') {
+      return this.processPreview(job as Job<PreviewJobData>);
+    }
+
+    return this.processEvaluate(job as Job<EvaluateJobData>);
+  }
+
+  private async processPreview(job: Job<PreviewJobData>) {
+    const { ddlScript, seedScript, studentQuery, timeLimitMs } = job.data;
+
+    const output = await this.sqlRunner.run({
+      ddlScript,
+      seedScript,
+      studentQuery,
+      timeLimitMs,
+    });
+
+    return {
+      status: output.status,
+      rows: output.rows.slice(0, PREVIEW_MAX_ROWS),
+      executionTimeMs: output.executionTimeMs,
+      errorMessage: output.errorMessage,
+    };
+  }
+
+  private async processEvaluate(job: Job<EvaluateJobData>): Promise<void> {
     const { submissionId } = job.data;
     this.logger.log(`Procesando submission ${submissionId}`);
 

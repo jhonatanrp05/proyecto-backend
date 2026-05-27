@@ -19,6 +19,7 @@ import { Role } from '../../../shared/constants/roles.enum';
 import { CurrentUser } from '../../../shared/decorators';
 import { SubmissionsService } from '../application/submissions.service';
 import { CreateSubmissionDto } from '../application/dtos/create-submission.dto';
+import { PreviewSubmissionDto } from '../application/dtos/preview-submission.dto';
 
 @ApiTags('Submissions')
 @ApiBearerAuth()
@@ -39,6 +40,21 @@ export class SubmissionsController {
     @CurrentUser() user: { id: string },
   ) {
     return this.submissionsService.create(dto, user.id);
+  }
+
+  @Post('preview')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.STUDENT, Role.PROFESSOR)
+  @ApiOperation({
+    summary: 'Ejecutar una consulta en modo preview [STUDENT, PROFESSOR]',
+    description:
+      'Ejecuta la consulta contra el esquema/datos del reto en un sandbox efímero y devuelve las filas resultantes. No se califica ni se persiste.',
+  })
+  preview(
+    @Body() dto: PreviewSubmissionDto,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.submissionsService.preview(dto, user);
   }
 
   @Get()

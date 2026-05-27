@@ -4,30 +4,129 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { ConfigService } from '@nestjs/config';
+import { Queue, QueueEvents } from 'bullmq';
 import { PrismaService } from '../../../shared/prisma';
 import {
   ISubmissionRepository,
   SUBMISSION_REPOSITORY,
 } from '../domain/submission.repository.interface';
 import { CreateSubmissionDto } from './dtos/create-submission.dto';
+import { PreviewSubmissionDto } from './dtos/preview-submission.dto';
 
 // Nombre de la cola
 //debe coincidir exactamente con el worker
 export const SUBMISSIONS_QUEUE = 'submissions';
 
+// Tiempo máximo que la API espera el resultado de un preview antes de abortar.
+const PREVIEW_TIMEOUT_MS = 60_000;
+
+export interface PreviewResult {
+  status: 'OK' | 'TIMEOUT' | 'SYNTAX_ERROR' | 'RUNTIME_ERROR';
+  rows: Record<string, unknown>[];
+  executionTimeMs: number;
+  errorMessage?: string;
+}
+
 @Injectable()
-export class SubmissionsService {
+export class SubmissionsService implements OnModuleInit, OnModuleDestroy {
+  // Necesario para esperar el valor de retorno del job de preview (lo produce el worker).
+  private queueEvents?: QueueEvents;
+
   constructor(
     @Inject(SUBMISSION_REPOSITORY)
     private readonly submissionRepository: ISubmissionRepository,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
 
     @InjectQueue(SUBMISSIONS_QUEUE)
     private readonly submissionsQueue: Queue,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    this.queueEvents = new QueueEvents(SUBMISSIONS_QUEUE, {
+      connection: {
+        host: this.config.get<string>('REDIS_HOST'),
+        port: this.config.get<number>('REDIS_PORT'),
+      },
+    });
+    await this.queueEvents.waitUntilReady();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.queueEvents?.close();
+  }
+
+  async preview(
+    dto: PreviewSubmissionDto,
+    requester: { id: string; role: string },
+  ): Promise<PreviewResult> {
+    const challenge = await this.prisma.challenge.findUnique({
+      where: { id: dto.challengeId },
+      select: {
+        id: true,
+        status: true,
+        courseId: true,
+        timeLimit: true,
+        schema: { select: { ddlScript: true } },
+        seedData: { select: { insertScript: true } },
+      },
+    });
+
+    if (!challenge) {
+      throw new BadRequestException(
+        `El reto con ID "${dto.challengeId}" no existe`,
+      );
+    }
+
+    if (!challenge.schema) {
+      throw new BadRequestException(
+        'El reto aún no tiene un esquema configurado para ejecutar consultas',
+      );
+    }
+
+    // Los estudiantes solo pueden probar consultas en retos de cursos en los que
+    // están inscritos. Profesor/Admin pueden previsualizar sin restricción.
+    if (requester.role === 'STUDENT') {
+      const enrollment = await this.prisma.courseStudent.findUnique({
+        where: {
+          courseId_studentId: {
+            courseId: challenge.courseId,
+            studentId: requester.id,
+          },
+        },
+        select: { courseId: true },
+      });
+
+      if (!enrollment) {
+        throw new ForbiddenException(
+          'No estás inscrito en el curso de este reto',
+        );
+      }
+    }
+
+    if (!this.queueEvents) {
+      throw new BadRequestException('El servicio de preview no está disponible');
+    }
+
+    const job = await this.submissionsQueue.add('preview', {
+      ddlScript: challenge.schema.ddlScript,
+      seedScript: challenge.seedData?.insertScript ?? '',
+      studentQuery: dto.query,
+      timeLimitMs: challenge.timeLimit,
+    });
+
+    const result = (await job.waitUntilFinished(
+      this.queueEvents,
+      PREVIEW_TIMEOUT_MS,
+    )) as PreviewResult;
+
+    return result;
+  }
 
   async create(dto: CreateSubmissionDto, studentId: string): Promise<any> {
     const challenge = await this.prisma.challenge.findUnique({
