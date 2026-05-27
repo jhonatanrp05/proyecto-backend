@@ -1,6 +1,7 @@
 import { PrismaClient, Role } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as dotenv from 'dotenv';
+import * as bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -8,6 +9,7 @@ const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 const prisma = new PrismaClient({ adapter });
+const seedPassword = process.env.SEED_DEFAULT_PASSWORD ?? 'Pass1234!';
 
 async function main() {
   console.log('🌱 Iniciando seeder para el módulo Recommendations...');
@@ -20,12 +22,23 @@ async function main() {
   await prisma.course.deleteMany();
   await prisma.user.deleteMany();
 
-  // 2. Crear Usuarios (Student y Professor)
+  // 2. Crear Usuarios (Admin, Professor y Student)
   console.log('👤 Creando usuarios...');
+  const hashedPassword = await bcrypt.hash(seedPassword, 10);
+
+  const admin = await prisma.user.create({
+    data: {
+      email: process.env.SEED_ADMIN_EMAIL ?? 'admin@test.com',
+      password: hashedPassword,
+      name: 'Admin',
+      role: Role.ADMIN,
+    },
+  });
+
   const professor = await prisma.user.create({
     data: {
-      email: 'profesor@ejemplo.com',
-      password: 'hashed_password', // Mock
+      email: process.env.SEED_PROFESSOR_EMAIL ?? 'prof@test.com',
+      password: hashedPassword,
       name: 'Profesor Oak',
       role: Role.PROFESSOR,
     },
@@ -33,8 +46,8 @@ async function main() {
 
   const student = await prisma.user.create({
     data: {
-      email: 'alumno@ejemplo.com',
-      password: 'hashed_password', // Mock
+      email: process.env.SEED_STUDENT_EMAIL ?? 'student@test.com',
+      password: hashedPassword,
       name: 'Ash Ketchum',
       role: Role.STUDENT,
     },
@@ -89,7 +102,8 @@ async function main() {
   await prisma.submission.create({
     data: {
       engine: 'postgresql',
-      query: 'SELECT name FROM customers WHERE EXTRACT(YEAR FROM registration_date) = 2023;', // Viola: Función en WHERE
+      query:
+        'SELECT name FROM customers WHERE EXTRACT(YEAR FROM registration_date) = 2023;', // Viola: Función en WHERE
       studentId: student.id,
       challengeId: challenge.id,
     },
@@ -99,7 +113,8 @@ async function main() {
   await prisma.submission.create({
     data: {
       engine: 'postgresql',
-      query: 'SELECT name FROM customers WHERE id IN (SELECT customer_id FROM orders) AND registration_date > \'2023-01-01\';', // Viola: IN subquery
+      query:
+        "SELECT name FROM customers WHERE id IN (SELECT customer_id FROM orders) AND registration_date > '2023-01-01';", // Viola: IN subquery
       studentId: student.id,
       challengeId: challenge.id,
     },
@@ -109,7 +124,8 @@ async function main() {
   await prisma.submission.create({
     data: {
       engine: 'postgresql',
-      query: 'SELECT id, total FROM orders WHERE customer_id = 1 ORDER BY order_date DESC;', // Viola: ORDER BY order_date (no indexada)
+      query:
+        'SELECT id, total FROM orders WHERE customer_id = 1 ORDER BY order_date DESC;', // Viola: ORDER BY order_date (no indexada)
       studentId: student.id,
       challengeId: challenge.id,
     },
@@ -126,6 +142,10 @@ async function main() {
   });
 
   console.log('Seed completado con éxito!');
+  console.log('Credenciales seed locales:');
+  console.log(`- Admin: ${admin.email} / ${seedPassword}`);
+  console.log(`- Profesor: ${professor.email} / ${seedPassword}`);
+  console.log(`- Estudiante: ${student.email} / ${seedPassword}`);
 }
 
 main()
