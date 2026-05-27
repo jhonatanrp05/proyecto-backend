@@ -11,6 +11,7 @@ import {
 } from '../domain/user.repository.interface';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { Role } from '../../../shared/constants';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +22,10 @@ export class UsersService {
 
   findAll() {
     return this.userRepository.findAll();
+  }
+
+  findStudents() {
+    return this.userRepository.findByRole(Role.STUDENT);
   }
 
   async create(dto: CreateUserDto) {

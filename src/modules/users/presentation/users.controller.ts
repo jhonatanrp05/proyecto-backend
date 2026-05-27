@@ -52,6 +52,17 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Get('students')
+  @Roles(Role.PROFESSOR, Role.ADMIN)
+  @ApiOperation({ summary: 'Get all students [PROFESSOR, ADMIN]' })
+  @ApiResponse({
+    status: 200,
+    description: 'Students retrieved successfully',
+  })
+  findStudents() {
+    return this.usersService.findStudents();
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get user by ID [ADMIN]' })

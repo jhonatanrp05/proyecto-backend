@@ -2,6 +2,7 @@ import { Role } from '../../../shared/constants';
 
 export interface IUserRepository {
   findAll(): Promise<any[]>;
+  findByRole(role: Role): Promise<any[]>;
   findById(id: string): Promise<any | null>;
   findByEmail(email: string): Promise<any | null>;
   create(data: {
