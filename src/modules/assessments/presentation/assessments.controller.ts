@@ -48,8 +48,8 @@ export class AssessmentsController {
   }
 
   @Get()
-  @Roles(Role.PROFESSOR, Role.STUDENT)
-  @ApiOperation({ summary: 'List assessments [PROFESSOR, STUDENT]' })
+  @Roles(Role.PROFESSOR, Role.STUDENT, Role.ADMIN)
+  @ApiOperation({ summary: 'List assessments [PROFESSOR, STUDENT, ADMIN]' })
   @ApiQuery({ name: 'courseId', required: false })
   findAll(
     @Query('courseId') courseId: string | undefined,

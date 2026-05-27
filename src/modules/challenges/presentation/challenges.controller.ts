@@ -73,7 +73,7 @@ export class ChallengesController {
   //  GET /challenges
 
   @Get()
-  @Roles(Role.PROFESSOR, Role.STUDENT)
+  @Roles(Role.PROFESSOR, Role.STUDENT, Role.ADMIN)
   @ApiOperation({ summary: 'Listar retos, con filtros opcionales' })
   findAll(@Query('courseId') courseId: string, @Request() req: any) {
     const isStudent = req.user.role === 'STUDENT';
